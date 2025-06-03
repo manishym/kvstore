@@ -1,8 +1,6 @@
 #include "server_impl.h"
 #include <grpcpp/grpcpp.h>
 #include <iostream>
-#include <kvstore.grpc.pb.h>
-#include <kvstore.pb.h>
 #include <memory>
 #include <string>
 
@@ -30,5 +28,7 @@ void RunServer() {
   server->Wait();
 }
 
-// Renamed from main to RunServerMain and removed argc/argv parameters
-void RunServerMain() { RunServer(); }
+int main(int argc, char **argv) {
+  RunServer();
+  return 0;
+}
