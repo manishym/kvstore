@@ -9,6 +9,8 @@ find_package(Protobuf REQUIRED)
 find_package(gRPC REQUIRED)
 find_package(GTest REQUIRED)
 find_package(Threads REQUIRED)
+find_package(Boost REQUIRED COMPONENTS container)
+find_package(nlohmann_json REQUIRED)
 
 # Set the directory for generated files
 set(GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
@@ -40,6 +42,7 @@ set(COMMON_INCLUDE_DIRS
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${Protobuf_INCLUDE_DIRS}
     ${gRPC_INCLUDE_DIRS}
+    ${Boost_INCLUDE_DIRS}
 )
 
 # Common libraries
@@ -48,6 +51,8 @@ set(COMMON_LIBS
     gRPC::grpc++_reflection
     protobuf::libprotobuf
     Threads::Threads
+    Boost::container
+    nlohmann_json::nlohmann_json
 )
 
 # Add server executable
@@ -79,9 +84,10 @@ target_include_directories(client PRIVATE ${COMMON_INCLUDE_DIRS})
 # Test configuration
 enable_testing()
 
-# Add test executable
+# Add test executables
 add_executable(kvstore_tests
     tests/unit/server_test.cpp
+    tests/unit/map_test.cpp
     src/server.cpp
     ${PROTO_SRCS}
     ${PROTO_HDRS}

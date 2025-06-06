@@ -1,0 +1,12 @@
+{
+    "map_type": "boost_map",
+    "map_options": {
+        "boost_map": {
+            "initial_size": 1000,
+            "load_factor": 0.75
+        },
+        "std_map": {
+            "initial_size": 1000
+        }
+    }
+}
