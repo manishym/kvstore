@@ -402,6 +402,229 @@ TEST_F(KeyValueStoreTest, MultipleOperationsSameKey) {
   ASSERT_FALSE(delete_response2.success());
 }
 
+TEST_F(KeyValueStoreTest, ServerStartupShutdown) {
+  // Test server startup
+  ASSERT_NE(server_, nullptr);
+
+  // Test server shutdown
+  server_->Shutdown();
+  ASSERT_TRUE(server_thread_.joinable());
+  server_thread_.join();
+}
+
+TEST_F(KeyValueStoreTest, ConcurrentClients) {
+  const int num_clients = 10;
+  std::vector<std::thread> client_threads;
+  std::vector<std::string> keys;
+  std::vector<std::string> values;
+
+  // Create unique keys and values for each client
+  for (int i = 0; i < num_clients; ++i) {
+    keys.push_back("concurrent_client_key_" + std::to_string(i));
+    values.push_back("concurrent_client_value_" + std::to_string(i));
+  }
+
+  // Create client threads
+  for (int i = 0; i < num_clients; ++i) {
+    client_threads.emplace_back([this, &keys, &values, i]() {
+      // Create a new client for each thread
+      std::shared_ptr<Channel> channel = grpc::CreateChannel(
+          "localhost:50051", grpc::InsecureChannelCredentials());
+      std::unique_ptr<KeyValueStore::Stub> client_stub =
+          KeyValueStore::NewStub(channel);
+
+      // Put
+      PutRequest put_request;
+      put_request.set_key(keys[i]);
+      put_request.set_value(values[i]);
+
+      PutResponse put_response;
+      ClientContext put_context;
+      Status put_status =
+          client_stub->Put(&put_context, put_request, &put_response);
+
+      ASSERT_TRUE(put_status.ok());
+      ASSERT_TRUE(put_response.success());
+
+      // Get
+      GetRequest get_request;
+      get_request.set_key(keys[i]);
+
+      GetResponse get_response;
+      ClientContext get_context;
+      Status get_status =
+          client_stub->Get(&get_context, get_request, &get_response);
+
+      ASSERT_TRUE(get_status.ok());
+      ASSERT_TRUE(get_response.found());
+      ASSERT_EQ(get_response.value(), values[i]);
+
+      // Delete
+      DeleteRequest delete_request;
+      delete_request.set_key(keys[i]);
+
+      DeleteResponse delete_response;
+      ClientContext delete_context;
+      Status delete_status = client_stub->Delete(
+          &delete_context, delete_request, &delete_response);
+
+      ASSERT_TRUE(delete_status.ok());
+      ASSERT_TRUE(delete_response.success());
+    });
+  }
+
+  // Wait for all client threads to complete
+  for (auto &thread : client_threads) {
+    thread.join();
+  }
+}
+
+TEST_F(KeyValueStoreTest, RapidOperations) {
+  const int num_operations = 1000;
+  std::string key = "rapid_key";
+  std::string value = "rapid_value";
+
+  // Perform rapid put operations
+  for (int i = 0; i < num_operations; ++i) {
+    PutRequest put_request;
+    put_request.set_key(key);
+    put_request.set_value(value + std::to_string(i));
+
+    PutResponse put_response;
+    ClientContext put_context;
+    Status put_status = stub_->Put(&put_context, put_request, &put_response);
+
+    ASSERT_TRUE(put_status.ok());
+    ASSERT_TRUE(put_response.success());
+  }
+
+  // Verify the last value
+  GetRequest get_request;
+  get_request.set_key(key);
+
+  GetResponse get_response;
+  ClientContext get_context;
+  Status get_status = stub_->Get(&get_context, get_request, &get_response);
+
+  ASSERT_TRUE(get_status.ok());
+  ASSERT_TRUE(get_response.found());
+  ASSERT_EQ(get_response.value(), value + std::to_string(num_operations - 1));
+}
+
+TEST_F(KeyValueStoreTest, ErrorHandling) {
+  // Test with invalid key (very long key)
+  std::string long_key(1000000, 'k');
+  PutRequest invalid_key_request;
+  invalid_key_request.set_key(long_key);
+  invalid_key_request.set_value("value");
+
+  PutResponse invalid_key_response;
+  ClientContext invalid_key_context;
+  Status invalid_key_status = stub_->Put(
+      &invalid_key_context, invalid_key_request, &invalid_key_response);
+
+  ASSERT_TRUE(invalid_key_status.ok());
+  ASSERT_TRUE(invalid_key_response.success());
+
+  // Test with invalid value (very long value)
+  std::string long_value(1000000, 'v');
+  PutRequest invalid_value_request;
+  invalid_value_request.set_key("key");
+  invalid_value_request.set_value(long_value);
+
+  PutResponse invalid_value_response;
+  ClientContext invalid_value_context;
+  Status invalid_value_status = stub_->Put(
+      &invalid_value_context, invalid_value_request, &invalid_value_response);
+
+  ASSERT_TRUE(invalid_value_status.ok());
+  ASSERT_TRUE(invalid_value_response.success());
+
+  // Test with null key
+  PutRequest null_key_request;
+  null_key_request.set_key("");
+  null_key_request.set_value("value");
+
+  PutResponse null_key_response;
+  ClientContext null_key_context;
+  Status null_key_status =
+      stub_->Put(&null_key_context, null_key_request, &null_key_response);
+
+  ASSERT_TRUE(null_key_status.ok());
+  ASSERT_TRUE(null_key_response.success());
+}
+
+TEST_F(KeyValueStoreTest, MixedOperations) {
+  std::vector<std::string> keys = {"key1", "key2", "key3", "key4", "key5"};
+  std::vector<std::string> values = {"value1", "value2", "value3", "value4",
+                                     "value5"};
+
+  // Put all keys
+  for (size_t i = 0; i < keys.size(); ++i) {
+    PutRequest put_request;
+    put_request.set_key(keys[i]);
+    put_request.set_value(values[i]);
+
+    PutResponse put_response;
+    ClientContext put_context;
+    Status put_status = stub_->Put(&put_context, put_request, &put_response);
+
+    ASSERT_TRUE(put_status.ok());
+    ASSERT_TRUE(put_response.success());
+  }
+
+  // Delete some keys
+  DeleteRequest delete_request1;
+  delete_request1.set_key(keys[1]);
+  DeleteResponse delete_response1;
+  ClientContext delete_context1;
+  Status delete_status1 =
+      stub_->Delete(&delete_context1, delete_request1, &delete_response1);
+  ASSERT_TRUE(delete_status1.ok());
+  ASSERT_TRUE(delete_response1.success());
+
+  DeleteRequest delete_request2;
+  delete_request2.set_key(keys[3]);
+  DeleteResponse delete_response2;
+  ClientContext delete_context2;
+  Status delete_status2 =
+      stub_->Delete(&delete_context2, delete_request2, &delete_response2);
+  ASSERT_TRUE(delete_status2.ok());
+  ASSERT_TRUE(delete_response2.success());
+
+  // Update some keys
+  PutRequest update_request;
+  update_request.set_key(keys[0]);
+  update_request.set_value("updated_value1");
+  PutResponse update_response;
+  ClientContext update_context;
+  Status update_status =
+      stub_->Put(&update_context, update_request, &update_response);
+  ASSERT_TRUE(update_status.ok());
+  ASSERT_TRUE(update_response.success());
+
+  // Verify all keys
+  for (size_t i = 0; i < keys.size(); ++i) {
+    GetRequest get_request;
+    get_request.set_key(keys[i]);
+
+    GetResponse get_response;
+    ClientContext get_context;
+    Status get_status = stub_->Get(&get_context, get_request, &get_response);
+
+    ASSERT_TRUE(get_status.ok());
+    if (i == 1 || i == 3) {
+      ASSERT_FALSE(get_response.found());
+    } else if (i == 0) {
+      ASSERT_TRUE(get_response.found());
+      ASSERT_EQ(get_response.value(), "updated_value1");
+    } else {
+      ASSERT_TRUE(get_response.found());
+      ASSERT_EQ(get_response.value(), values[i]);
+    }
+  }
+}
+
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
