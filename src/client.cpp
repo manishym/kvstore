@@ -1,6 +1,7 @@
-#include "kvstore.grpc.pb.h"
 #include <grpcpp/grpcpp.h>
 #include <iostream>
+#include <kvstore.grpc.pb.h>
+#include <kvstore.pb.h>
 #include <memory>
 #include <string>
 
