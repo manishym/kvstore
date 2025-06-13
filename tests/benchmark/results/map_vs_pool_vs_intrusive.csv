@@ -1,0 +1,4 @@
+MapType,TotalOps,insert_us_avg,insert_us_min,insert_us_max,insert_us_p50,insert_us_p75,insert_us_p90,insert_us_p95,insert_us_p99,find_us_avg,find_us_min,find_us_max,find_us_p50,find_us_p75,find_us_p90,find_us_p95,find_us_p99,erase_us_avg,erase_us_min,erase_us_max,erase_us_p50,erase_us_p75,erase_us_p90,erase_us_p95,erase_us_p99
+std::map,1000000,0.679286,0.07,29.8,0.66,0.87,1.06,1.19,2.23,0.650955,0.08,30.05,0.64,0.75,0.87,0.95,1.14,0.674476,0.06,32.09,0.69,0.89,1.05,1.15,1.36
+std::map_pool,1000000,0.599414,0.05,8752.61,0.58,0.77,0.94,1.05,1.26,0.614396,0.07,40.99,0.6,0.71,0.83,0.92,1.12,0.617686,0.04,31.34,0.63,0.83,0.98,1.089,1.29
+intrusive_rbtree,1000000,0.488276,0.03,30.9,0.48,0.67,0.82,0.91,1.11,0.552512,0.06,23.279,0.54,0.64,0.75,0.83,1.01,0.589891,0.04,45.75,0.59,0.8,0.98,1.08,1.31

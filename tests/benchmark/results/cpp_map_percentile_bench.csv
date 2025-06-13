@@ -1,0 +1,4 @@
+MapType,TotalOps,insert_us_avg,insert_us_min,insert_us_max,insert_us_p50,insert_us_p75,insert_us_p90,insert_us_p95,insert_us_p99,find_us_avg,find_us_min,find_us_max,find_us_p50,find_us_p75,find_us_p90,find_us_p95,find_us_p99,erase_us_avg,erase_us_min,erase_us_max,erase_us_p50,erase_us_p75,erase_us_p90,erase_us_p95,erase_us_p99
+std::map,1000000,0.680833,0.08,37.591,0.67,0.87,1.06,1.19,2.21,0.63578,0.09,23.95,0.62,0.73,0.85,0.93,1.1,0.678705,0.06,42.78,0.7,0.89,1.05,1.15,1.36
+boost::map,1000000,0.615338,0.04,49.46,0.61,0.8,0.96,1.08,2.1,0.60275,0.05,25.11,0.59,0.7,0.81,0.9,1.07,0.683495,0.07,45.29,0.7,0.9,1.07,1.17,1.39
+boost::flat_map,1000000,59.2646,0.03,949.825,41.55,86.79,140.441,177.04,247.271,0.195017,0.04,41.58,0.18,0.22,0.27,0.32,0.45,58.887,0.04,937.435,41.43,84.75,135.91,173.721,269.561
