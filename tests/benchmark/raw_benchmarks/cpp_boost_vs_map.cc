@@ -124,7 +124,7 @@ int main() {
   out << "\n";
 
   // Benchmark with different operation counts
-  for (int num_ops = 1'000'000; num_ops <= 20'000'000; num_ops += 4'000'000) {
+  for (int num_ops = 100'000; num_ops <= 1'000'000; num_ops += 100'000) {
     std::cout << "Benchmarking with " << num_ops << " operations...\n";
 
     // Tree-based maps

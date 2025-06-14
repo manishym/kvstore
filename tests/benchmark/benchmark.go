@@ -115,20 +115,21 @@ func saveResultsToCSV(results []BenchmarkResult) error {
 			result.Name,
 			fmt.Sprintf("%d", result.Count),
 			fmt.Sprintf("%d", concurrency),
-			fmt.Sprintf("%.2f", result.Total),
-			fmt.Sprintf("%.2f", result.Average),
-			fmt.Sprintf("%.2f", result.Fastest),
-			fmt.Sprintf("%.2f", result.Slowest),
+			fmt.Sprintf("%.2f", result.Total/1_000_000), // seconds
+			fmt.Sprintf("%.2f", result.Average/1000),    // ms
+			fmt.Sprintf("%.2f", result.Fastest/1000),    // ms
+			fmt.Sprintf("%.2f", result.Slowest/1000),    // ms
 			fmt.Sprintf("%.2f", result.RPS),
 			fmt.Sprintf("%d", result.ErrorCount),
 			fmt.Sprintf("%.2f", result.ErrorRate),
-			fmt.Sprintf("%.2f", result.LatencyPercentiles.P50),
-			fmt.Sprintf("%.2f", result.LatencyPercentiles.P75),
-			fmt.Sprintf("%.2f", result.LatencyPercentiles.P90),
-			fmt.Sprintf("%.2f", result.LatencyPercentiles.P95),
-			fmt.Sprintf("%.2f", result.LatencyPercentiles.P99),
-			fmt.Sprintf("%.2f", result.LatencyPercentiles.P999),
+			fmt.Sprintf("%.2f", result.LatencyPercentiles.P50/1000),
+			fmt.Sprintf("%.2f", result.LatencyPercentiles.P75/1000),
+			fmt.Sprintf("%.2f", result.LatencyPercentiles.P90/1000),
+			fmt.Sprintf("%.2f", result.LatencyPercentiles.P95/1000),
+			fmt.Sprintf("%.2f", result.LatencyPercentiles.P99/1000),
+			fmt.Sprintf("%.2f", result.LatencyPercentiles.P999/1000),
 		}
+		fmt.Printf("row: %v\n", row)
 		if err := writer.Write(row); err != nil {
 			return fmt.Errorf("failed to write CSV row: %v", err)
 		}

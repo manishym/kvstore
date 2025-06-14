@@ -25,6 +25,25 @@ template <typename Func> std::vector<double> benchmark_op(Func &&f, int ops) {
   return timings;
 }
 
+// Helper: Average multiple runs of timings
+std::vector<double>
+average_timings(const std::vector<std::vector<double>> &all_timings) {
+  if (all_timings.empty())
+    return {};
+
+  std::vector<double> avg_timings(all_timings[0].size(), 0.0);
+  for (const auto &timings : all_timings) {
+    for (size_t i = 0; i < timings.size(); ++i) {
+      avg_timings[i] += timings[i];
+    }
+  }
+
+  for (auto &t : avg_timings) {
+    t /= all_timings.size();
+  }
+  return avg_timings;
+}
+
 void write_percentiles(std::ofstream &out, const std::vector<double> &data,
                        const std::string &prefix) {
   std::vector<double> sorted = data;
@@ -43,57 +62,86 @@ void write_percentiles(std::ofstream &out, const std::vector<double> &data,
 }
 
 // ---------- 1. std::map (default allocator) ----------
-void benchmark_std_map(const std::string &name, int num_ops,
+void benchmark_std_map(const std::string &name, int num_ops, int n_runs,
                        std::ofstream &out) {
-  std::vector<int> keys(num_ops);
-  std::iota(keys.begin(), keys.end(), 1);
-  std::shuffle(keys.begin(), keys.end(), std::mt19937{42});
-  std::map<int, int> m;
+  std::vector<std::vector<double>> all_insert_timings;
+  std::vector<std::vector<double>> all_find_timings;
+  std::vector<std::vector<double>> all_erase_timings;
 
-  auto insert_timings =
-      benchmark_op([&](int i) { m[keys[i]] = keys[i]; }, num_ops);
+  for (int run = 0; run < n_runs; ++run) {
+    std::vector<int> keys(num_ops);
+    std::iota(keys.begin(), keys.end(), 1);
+    std::shuffle(keys.begin(), keys.end(),
+                 std::mt19937{static_cast<unsigned long>(
+                     42 + run)}); // Different seed for each run
+    std::map<int, int> m;
 
-  auto find_timings = benchmark_op(
-      [&](int i) {
-        auto it = m.find(keys[i]);
-        assert(it != m.end());
-      },
-      num_ops);
+    all_insert_timings.push_back(
+        benchmark_op([&](int i) { m[keys[i]] = keys[i]; }, num_ops));
 
-  auto erase_timings = benchmark_op([&](int i) { m.erase(keys[i]); }, num_ops);
+    all_find_timings.push_back(benchmark_op(
+        [&](int i) {
+          auto it = m.find(keys[i]);
+          assert(it != m.end());
+        },
+        num_ops));
+
+    all_erase_timings.push_back(
+        benchmark_op([&](int i) { m.erase(keys[i]); }, num_ops));
+  }
+
+  // Average the timings across all runs
+  auto avg_insert_timings = average_timings(all_insert_timings);
+  auto avg_find_timings = average_timings(all_find_timings);
+  auto avg_erase_timings = average_timings(all_erase_timings);
 
   out << name << "," << num_ops;
-  write_percentiles(out, insert_timings, "insert_us");
-  write_percentiles(out, find_timings, "find_us");
-  write_percentiles(out, erase_timings, "erase_us");
+  write_percentiles(out, avg_insert_timings, "insert_us");
+  write_percentiles(out, avg_find_timings, "find_us");
+  write_percentiles(out, avg_erase_timings, "erase_us");
   out << "\n";
 }
 
 // ---------- 2. std::map with boost::fast_pool_allocator ----------
-void benchmark_std_map_pool(const std::string &name, int num_ops,
+void benchmark_std_map_pool(const std::string &name, int num_ops, int n_runs,
                             std::ofstream &out) {
   using pool_alloc = boost::fast_pool_allocator<std::pair<const int, int>>;
-  std::vector<int> keys(num_ops);
-  std::iota(keys.begin(), keys.end(), 1);
-  std::shuffle(keys.begin(), keys.end(), std::mt19937{42});
-  std::map<int, int, std::less<int>, pool_alloc> m;
 
-  auto insert_timings =
-      benchmark_op([&](int i) { m[keys[i]] = keys[i]; }, num_ops);
+  std::vector<std::vector<double>> all_insert_timings;
+  std::vector<std::vector<double>> all_find_timings;
+  std::vector<std::vector<double>> all_erase_timings;
 
-  auto find_timings = benchmark_op(
-      [&](int i) {
-        auto it = m.find(keys[i]);
-        assert(it != m.end());
-      },
-      num_ops);
+  for (int run = 0; run < n_runs; ++run) {
+    std::vector<int> keys(num_ops);
+    std::iota(keys.begin(), keys.end(), 1);
+    std::shuffle(keys.begin(), keys.end(),
+                 std::mt19937{static_cast<unsigned long>(
+                     42 + run)}); // Different seed for each run
+    std::map<int, int, std::less<int>, pool_alloc> m;
 
-  auto erase_timings = benchmark_op([&](int i) { m.erase(keys[i]); }, num_ops);
+    all_insert_timings.push_back(
+        benchmark_op([&](int i) { m[keys[i]] = keys[i]; }, num_ops));
+
+    all_find_timings.push_back(benchmark_op(
+        [&](int i) {
+          auto it = m.find(keys[i]);
+          assert(it != m.end());
+        },
+        num_ops));
+
+    all_erase_timings.push_back(
+        benchmark_op([&](int i) { m.erase(keys[i]); }, num_ops));
+  }
+
+  // Average the timings across all runs
+  auto avg_insert_timings = average_timings(all_insert_timings);
+  auto avg_find_timings = average_timings(all_find_timings);
+  auto avg_erase_timings = average_timings(all_erase_timings);
 
   out << name << "," << num_ops;
-  write_percentiles(out, insert_timings, "insert_us");
-  write_percentiles(out, find_timings, "find_us");
-  write_percentiles(out, erase_timings, "erase_us");
+  write_percentiles(out, avg_insert_timings, "insert_us");
+  write_percentiles(out, avg_find_timings, "find_us");
+  write_percentiles(out, avg_erase_timings, "erase_us");
   out << "\n";
 }
 
@@ -109,46 +157,62 @@ struct IntrusiveNode
 };
 
 void benchmark_intrusive_rbtree(const std::string &name, int num_ops,
-                                std::ofstream &out) {
+                                int n_runs, std::ofstream &out) {
   using Tree = set<IntrusiveNode>;
-  std::vector<int> keys(num_ops);
-  std::iota(keys.begin(), keys.end(), 1);
-  std::shuffle(keys.begin(), keys.end(), std::mt19937{42});
 
-  // Pre-allocate all nodes in a slab
-  std::vector<IntrusiveNode> nodes(num_ops);
-  for (int i = 0; i < num_ops; ++i)
-    nodes[i] = IntrusiveNode(keys[i], keys[i]);
-  Tree t;
+  std::vector<std::vector<double>> all_insert_timings;
+  std::vector<std::vector<double>> all_find_timings;
+  std::vector<std::vector<double>> all_erase_timings;
 
-  // Insert
-  auto insert_timings =
-      benchmark_op([&](int i) { t.insert(nodes[i]); }, num_ops);
+  for (int run = 0; run < n_runs; ++run) {
+    std::vector<int> keys(num_ops);
+    std::iota(keys.begin(), keys.end(), 1);
+    std::shuffle(keys.begin(), keys.end(),
+                 std::mt19937{static_cast<unsigned long>(
+                     42 + run)}); // Different seed for each run
 
-  // Find
-  auto find_timings = benchmark_op(
-      [&](int i) {
-        IntrusiveNode tmp(keys[i], 0);
-        auto it = t.find(tmp);
-        assert(it != t.end());
-      },
-      num_ops);
+    // Pre-allocate all nodes in a slab
+    std::vector<IntrusiveNode> nodes(num_ops);
+    for (int i = 0; i < num_ops; ++i)
+      nodes[i] = IntrusiveNode(keys[i], keys[i]);
+    Tree t;
 
-  // Erase
-  auto erase_timings = benchmark_op([&](int i) { t.erase(nodes[i]); }, num_ops);
+    all_insert_timings.push_back(
+        benchmark_op([&](int i) { t.insert(nodes[i]); }, num_ops));
+
+    all_find_timings.push_back(benchmark_op(
+        [&](int i) {
+          IntrusiveNode tmp(keys[i], 0);
+          auto it = t.find(tmp);
+          assert(it != t.end());
+        },
+        num_ops));
+
+    all_erase_timings.push_back(
+        benchmark_op([&](int i) { t.erase(nodes[i]); }, num_ops));
+  }
+
+  // Average the timings across all runs
+  auto avg_insert_timings = average_timings(all_insert_timings);
+  auto avg_find_timings = average_timings(all_find_timings);
+  auto avg_erase_timings = average_timings(all_erase_timings);
 
   out << name << "," << num_ops;
-  write_percentiles(out, insert_timings, "insert_us");
-  write_percentiles(out, find_timings, "find_us");
-  write_percentiles(out, erase_timings, "erase_us");
+  write_percentiles(out, avg_insert_timings, "insert_us");
+  write_percentiles(out, avg_find_timings, "find_us");
+  write_percentiles(out, avg_erase_timings, "erase_us");
   out << "\n";
 }
 
 int main() {
-  int num_ops = 1'000'000'0;
+  int max_ops = 1'000'000;
+  int min_ops = 100;
+  int step = 100;
+  int ops = min_ops;
+  int n_runs = 5; // Number of times to run each benchmark
 
   std::ofstream out("map_vs_pool_vs_intrusive.csv");
-  out << "MapType,TotalOps"
+  out << "MapType,OpsCount"
       << ",insert_us_avg,insert_us_min,insert_us_max,insert_us_p50,insert_us_"
          "p75,insert_us_p90,insert_us_p95,insert_us_p99"
       << ",find_us_avg,find_us_min,find_us_max,find_us_p50,find_us_p75,find_us_"
@@ -156,9 +220,18 @@ int main() {
       << ",erase_us_avg,erase_us_min,erase_us_max,erase_us_p50,erase_us_p75,"
          "erase_us_p90,erase_us_p95,erase_us_p99\n";
 
-  benchmark_std_map("std::map", num_ops, out);
-  benchmark_std_map_pool("std::map_pool", num_ops, out);
-  benchmark_intrusive_rbtree("intrusive_rbtree", num_ops, out);
+  // Benchmark with different operation counts
+  for (step = 100; step <= 100'000; step *= 10) {
+    for (int num_ops = ops; num_ops < (ops * 10); num_ops += step) {
+      std::cout << "Benchmarking with " << num_ops << " operations...\n";
+      benchmark_std_map("std::map", num_ops, n_runs, out);
+      benchmark_std_map_pool("std::map_pool", num_ops, n_runs, out);
+      benchmark_intrusive_rbtree("intrusive_rbtree", num_ops, n_runs, out);
+    }
+    ops *= 10;
+    if (ops >= max_ops)
+      break;
+  }
 
   out.close();
   std::cout << "Done! See map_vs_pool_vs_intrusive.csv\n";
