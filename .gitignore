@@ -44,4 +44,34 @@ Makefile
 
 # OS specific files
 .DS_Store
-Thumbs.db 
+Thumbs.db
+
+# Third-party dependencies
+third_party/
+third-party/
+deps/
+dependencies/
+external/
+externals/
+
+# Python virtual environments
+venv/
+env/
+.env/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+pythonenv*/
+.python-version
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/ 
+output/
+spdk/
+grpc/
