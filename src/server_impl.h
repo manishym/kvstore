@@ -1,11 +1,10 @@
 #ifndef SERVER_IMPL_H
 #define SERVER_IMPL_H
 
+#include <folly/concurrency/ConcurrentSkipList.h>
 #include <grpcpp/grpcpp.h>
 #include <kvstore.grpc.pb.h>
 #include <kvstore.pb.h>
-#include <map>
-#include <mutex>
 #include <string>
 
 using grpc::ServerContext;
@@ -20,15 +19,19 @@ using kvstore::PutResponse;
 
 class KeyValueStoreServiceImpl final : public KeyValueStore::Service {
 private:
-  std::map<std::string, std::string> store_;
-  std::mutex mutex_;
+  // Define the skip list type with string key and value
+  using SkipList = folly::ConcurrentSkipList<std::string>;
+  using SkipListAccessor = SkipList::Accessor;
+
+  // Create the skip list with default parameters
+  SkipList store_{SkipList::createInstance()};
 
 public:
   Status Put(ServerContext *context, const PutRequest *request,
              PutResponse *response) override {
-    std::lock_guard<std::mutex> lock(mutex_);
     try {
-      store_[request->key()] = request->value();
+      SkipListAccessor accessor(store_);
+      accessor.addOrUpdate(request->key(), request->value());
       response->set_success(true);
       return Status::OK;
     } catch (const std::exception &e) {
@@ -40,11 +43,11 @@ public:
 
   Status Get(ServerContext *context, const GetRequest *request,
              GetResponse *response) override {
-    std::lock_guard<std::mutex> lock(mutex_);
     try {
-      auto it = store_.find(request->key());
-      if (it != store_.end()) {
-        response->set_value(it->second);
+      SkipListAccessor accessor(store_);
+      auto value = accessor.find(request->key());
+      if (value) {
+        response->set_value(*value);
         response->set_found(true);
       } else {
         response->set_found(false);
@@ -59,10 +62,10 @@ public:
 
   Status Delete(ServerContext *context, const DeleteRequest *request,
                 DeleteResponse *response) override {
-    std::lock_guard<std::mutex> lock(mutex_);
     try {
-      size_t erased = store_.erase(request->key());
-      response->set_success(erased > 0);
+      SkipListAccessor accessor(store_);
+      bool erased = accessor.erase(request->key());
+      response->set_success(erased);
       return Status::OK;
     } catch (const std::exception &e) {
       response->set_success(false);

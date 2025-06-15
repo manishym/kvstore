@@ -14,6 +14,7 @@ func main() {
 	concurrency := flag.Int("concurrency", 50, "Number of concurrent requests")
 	totalRequests := flag.Int("requests", 1000, "Total number of requests")
 	protoFile := flag.String("proto", "../../proto/kvstore.proto", "Path to proto file")
+	tag := flag.String("tag", "", "Tag to identify this benchmark run")
 	flag.Parse()
 
 	// Create benchmark configuration
@@ -22,6 +23,7 @@ func main() {
 		Concurrency:   *concurrency,
 		TotalRequests: *totalRequests,
 		ProtoFile:     *protoFile,
+		Tag:           *tag,
 	}
 
 	// Run benchmarks

@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 )
@@ -25,29 +26,28 @@ type Config struct {
 	Concurrency   int
 	TotalRequests int
 	ProtoFile     string
+	Tag           string
 }
 
 // BenchmarkResult represents the structure of ghz JSON output
 type BenchmarkResult struct {
-	Name               string  `json:"name"`
-	EndReason          string  `json:"endReason"`
-	Date               string  `json:"date"`
-	Count              int     `json:"count"`
-	Total              float64 `json:"total"`
-	Average            float64 `json:"average"`
-	Fastest            float64 `json:"fastest"`
-	Slowest            float64 `json:"slowest"`
-	RPS                float64 `json:"rps"`
-	ErrorCount         int     `json:"errorCount"`
-	ErrorRate          float64 `json:"errorRate"`
-	LatencyPercentiles struct {
-		P50  float64 `json:"p50"`
-		P75  float64 `json:"p75"`
-		P90  float64 `json:"p90"`
-		P95  float64 `json:"p95"`
-		P99  float64 `json:"p99"`
-		P999 float64 `json:"p999"`
-	} `json:"latencyPercentiles"`
+	Name       string  `json:"name"`
+	EndReason  string  `json:"endReason"`
+	Date       string  `json:"date"`
+	Count      int     `json:"count"`
+	Total      float64 `json:"total"`
+	Average    float64 `json:"average"`
+	Fastest    float64 `json:"fastest"`
+	Slowest    float64 `json:"slowest"`
+	RPS        float64 `json:"rps"`
+	ErrorCount int     `json:"errorCount"`
+	ErrorRate  float64 `json:"errorRate"`
+	Details    []struct {
+		Timestamp string  `json:"timestamp"`
+		Latency   float64 `json:"latency"`
+		Error     string  `json:"error"`
+		Status    string  `json:"status"`
+	} `json:"details"`
 }
 
 // DefaultConfig returns the default benchmark configuration
@@ -76,7 +76,16 @@ func encodeBase64(s string) string {
 	return base64.StdEncoding.EncodeToString([]byte(s))
 }
 
-func saveResultsToCSV(results []BenchmarkResult) error {
+// calculatePercentile calculates the nth percentile from a sorted slice of latencies
+func calculatePercentile(latencies []float64, percentile float64) float64 {
+	if len(latencies) == 0 {
+		return 0
+	}
+	index := int(float64(len(latencies)-1) * percentile / 100)
+	return latencies[index]
+}
+
+func saveResultsToCSV(results []BenchmarkResult, config Config) error {
 	// Create results directory if it doesn't exist
 	if err := os.MkdirAll("results", 0755); err != nil {
 		return fmt.Errorf("failed to create results directory: %v", err)
@@ -84,7 +93,11 @@ func saveResultsToCSV(results []BenchmarkResult) error {
 
 	// Generate timestamp for filename
 	timestamp := time.Now().Format("2006-01-02_15-04-05")
-	csvFilename := fmt.Sprintf("results/benchmark_results_%s.csv", timestamp)
+	filename := fmt.Sprintf("benchmark_results_%s", timestamp)
+	if config.Tag != "" {
+		filename = fmt.Sprintf("%s_%s", filename, config.Tag)
+	}
+	csvFilename := fmt.Sprintf("results/%s.csv", filename)
 
 	// Create CSV file
 	file, err := os.Create(csvFilename)
@@ -101,7 +114,7 @@ func saveResultsToCSV(results []BenchmarkResult) error {
 		"Timestamp", "Operation", "Total Requests", "Concurrency",
 		"Total Time (s)", "Average Latency (ms)", "Fastest (ms)", "Slowest (ms)",
 		"RPS", "Error Count", "Error Rate",
-		"P50 (ms)", "P75 (ms)", "P90 (ms)", "P95 (ms)", "P99 (ms)", "P99.9 (ms)",
+		"P10 (ms)", "P25 (ms)", "P50 (ms)", "P75 (ms)", "P90 (ms)", "P95 (ms)", "P99 (ms)",
 	}
 	if err := writer.Write(header); err != nil {
 		return fmt.Errorf("failed to write CSV header: %v", err)
@@ -110,11 +123,27 @@ func saveResultsToCSV(results []BenchmarkResult) error {
 	// Write data rows
 	now := time.Now().Format(time.RFC3339)
 	for _, result := range results {
+		// Extract latencies and sort them
+		latencies := make([]float64, len(result.Details))
+		for i, detail := range result.Details {
+			latencies[i] = detail.Latency
+		}
+		sort.Float64s(latencies)
+
+		// Calculate percentiles
+		p10 := calculatePercentile(latencies, 10)
+		p25 := calculatePercentile(latencies, 25)
+		p50 := calculatePercentile(latencies, 50)
+		p75 := calculatePercentile(latencies, 75)
+		p90 := calculatePercentile(latencies, 90)
+		p95 := calculatePercentile(latencies, 95)
+		p99 := calculatePercentile(latencies, 99)
+
 		row := []string{
 			now,
 			result.Name,
 			fmt.Sprintf("%d", result.Count),
-			fmt.Sprintf("%d", concurrency),
+			fmt.Sprintf("%d", config.Concurrency),
 			fmt.Sprintf("%.2f", result.Total/1_000_000), // seconds
 			fmt.Sprintf("%.2f", result.Average/1000),    // ms
 			fmt.Sprintf("%.2f", result.Fastest/1000),    // ms
@@ -122,12 +151,13 @@ func saveResultsToCSV(results []BenchmarkResult) error {
 			fmt.Sprintf("%.2f", result.RPS),
 			fmt.Sprintf("%d", result.ErrorCount),
 			fmt.Sprintf("%.2f", result.ErrorRate),
-			fmt.Sprintf("%.2f", result.LatencyPercentiles.P50/1000),
-			fmt.Sprintf("%.2f", result.LatencyPercentiles.P75/1000),
-			fmt.Sprintf("%.2f", result.LatencyPercentiles.P90/1000),
-			fmt.Sprintf("%.2f", result.LatencyPercentiles.P95/1000),
-			fmt.Sprintf("%.2f", result.LatencyPercentiles.P99/1000),
-			fmt.Sprintf("%.2f", result.LatencyPercentiles.P999/1000),
+			fmt.Sprintf("%.2f", p10/1000),
+			fmt.Sprintf("%.2f", p25/1000),
+			fmt.Sprintf("%.2f", p50/1000),
+			fmt.Sprintf("%.2f", p75/1000),
+			fmt.Sprintf("%.2f", p90/1000),
+			fmt.Sprintf("%.2f", p95/1000),
+			fmt.Sprintf("%.2f", p99/1000),
 		}
 		fmt.Printf("row: %v\n", row)
 		if err := writer.Write(row); err != nil {
@@ -162,6 +192,9 @@ func runBenchmark(config Config, name, method string, data interface{}) (*Benchm
 		"-c", fmt.Sprintf("%d", config.Concurrency),
 		"-o", outputFile,
 		"--format", "json",
+		"--timeout", "0", // No timeout
+		"--skipFirst", "0", // Don't skip any requests
+		"--rps", "0", // No rate limiting
 		config.ServerAddress,
 	)
 
@@ -261,7 +294,7 @@ func RunBenchmarks(config Config) error {
 	results = append(results, *deleteResult)
 
 	// Save all results to CSV
-	if err := saveResultsToCSV(results); err != nil {
+	if err := saveResultsToCSV(results, config); err != nil {
 		return fmt.Errorf("failed to save results to CSV: %v", err)
 	}
 
