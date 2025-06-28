@@ -32,6 +32,8 @@ This project implements a key-value store using SPDK and gRPC. It provides a sim
    ```bash
    cmake ..
    ```
+   This step also generates the protobuf and gRPC source files in the
+   `build/` directory.
 
 5. Build the project:
    ```bash
@@ -52,8 +54,8 @@ This project implements a key-value store using SPDK and gRPC. It provides a sim
 
 - `proto/`: Contains the Protocol Buffers definition file (`kvstore.proto`).
 - `src/`: Contains the C++ source files for the server and client.
-- `generated/`: Contains the generated Protocol Buffers and gRPC files.
-- `build/`: Contains the build artifacts.
+- `build/`: Contains the build artifacts. Protobuf and gRPC source files are
+  generated here when CMake configures the project.
 - `third_party/`: Contains external dependencies (gRPC).
 
 ## License
