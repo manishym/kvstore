@@ -11,7 +11,7 @@ mkdir -p tests/unit/build
 cd tests/unit/build
 
 # Configure with coverage
-cmake -DCMAKE_BUILD_TYPE=Coverage ../
+cmake -DCMAKE_BUILD_TYPE=Coverage ../../..
 
 # Build
 make -j$(nproc)
