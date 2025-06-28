@@ -32,7 +32,7 @@ def server_process(server_port):
     # Build the server if not already built
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
     build_dir = os.path.join(base_dir, "tests", "unit", "build")
-    server_path = os.path.join(build_dir, "kvstore_server")
+    server_path = os.path.join(build_dir, "server")
     
     if not os.path.exists(server_path):
         # Run cmake first to generate build files
