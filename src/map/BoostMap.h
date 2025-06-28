@@ -13,10 +13,18 @@ public:
   }
 
   bool insert(const K &key, const V &value) override {
-    return map_.insert(std::make_pair(key, value)).second;
+    auto it = map_.find(key);
+    bool inserted = it == map_.end();
+    map_[key] = value;
+    ordered_map_[key] = value;
+    return inserted;
   }
 
-  bool remove(const K &key) override { return map_.erase(key) > 0; }
+  bool remove(const K &key) override {
+    size_t count = map_.erase(key);
+    ordered_map_.erase(key);
+    return count > 0;
+  }
 
   bool get(const K &key, V &value) const override {
     auto it = map_.find(key);
@@ -33,32 +41,31 @@ public:
 
   size_t size() const override { return map_.size(); }
 
-  void clear() override { map_.clear(); }
+  void clear() override {
+    map_.clear();
+    ordered_map_.clear();
+  }
 
   // Ordered map operations
   typename IMap<K, V>::iterator begin() const override {
-    // Convert boost::container::flat_map iterator to std::map iterator
-    std::map<K, V> temp_map(map_.begin(), map_.end());
-    return temp_map.begin();
+    return ordered_map_.begin();
   }
 
   typename IMap<K, V>::iterator end() const override {
-    std::map<K, V> temp_map(map_.begin(), map_.end());
-    return temp_map.end();
+    return ordered_map_.end();
   }
 
   typename IMap<K, V>::iterator lower_bound(const K &key) const override {
-    std::map<K, V> temp_map(map_.begin(), map_.end());
-    return temp_map.lower_bound(key);
+    return ordered_map_.lower_bound(key);
   }
 
   typename IMap<K, V>::iterator upper_bound(const K &key) const override {
-    std::map<K, V> temp_map(map_.begin(), map_.end());
-    return temp_map.upper_bound(key);
+    return ordered_map_.upper_bound(key);
   }
 
 private:
   boost::container::flat_map<K, V> map_;
-};
+  std::map<K, V> ordered_map_;
+}; 
 
 } // namespace kvstore
