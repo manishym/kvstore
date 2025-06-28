@@ -3,6 +3,7 @@
 # Exit on error
 set -e
 
+cd "$(dirname "$0")"
 # Create and activate virtual environment
 python3 -m venv venv
 source venv/bin/activate
