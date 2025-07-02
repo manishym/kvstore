@@ -38,10 +38,16 @@ protected:
 
   static void TearDownTestSuite() {
     // In production you'd signal the server to stop and join thread.
-    // For test runs, just detach/kill the server (or modify AsyncKVServer to
-    // support shutdown). Here we detach to avoid blocking on server_->Run().
-    // server_thread_.detach();
-    // Or use std::terminate if you want to forcibly exit after tests.
+    // For the unit tests we simply detach the server thread and release the
+    // server instance so that destructors do not fire while the thread is
+    // still running. This prevents std::terminate from being invoked at
+    // process exit when the joinable thread object is destroyed.
+    if (server_thread_.joinable()) {
+      server_thread_.detach();
+    }
+    // Leak the server intentionally since the process exits immediately after
+    // the tests. This avoids destroying it while `Run()` is still executing.
+    (void)async_server_.release();
   }
 
   static std::unique_ptr<KeyValueStore::Stub> stub_;

@@ -14,9 +14,9 @@ using namespace kvstore;
 class MapTest : public ::testing::Test {
 protected:
   void SetUp() override {
-    std::ifstream config_file("../../src/config/runtime_config.json");
+    std::ifstream config_file("runtime_config.json");
     if (!config_file.is_open()) {
-      std::cerr << "Failed to open ../../src/config/runtime_config.json" << std::endl;
+      std::cerr << "Failed to open runtime_config.json" << std::endl;
       throw std::runtime_error("Could not open config file");
     }
 
