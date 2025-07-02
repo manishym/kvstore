@@ -13,6 +13,9 @@ find_package(Boost REQUIRED COMPONENTS container)
 find_package(nlohmann_json REQUIRED)
 find_package(fmt REQUIRED)
 
+# Use the system protoc instead of any local version
+set(Protobuf_PROTOC_EXECUTABLE "/usr/bin/protoc")
+
 # Add Folly
 set(FOLLY_INCLUDE_DIR "/usr/local/include")
 set(FOLLY_LIBRARY "/usr/local/lib/libfolly.a")

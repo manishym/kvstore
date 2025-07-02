@@ -75,3 +75,4 @@ htmlcov/
 output/
 spdk/
 grpc/
+lib/
