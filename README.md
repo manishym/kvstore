@@ -4,10 +4,43 @@ This project implements a key-value store using SPDK and gRPC. It provides a sim
 
 ## Prerequisites
 
+The project uses a number of C++ libraries in addition to gRPC and Protobuf.
+Make sure the following packages are available on your system before building:
+
 - CMake (version 3.10 or higher)
-- C++ compiler with C++14 support
-- Protocol Buffers (protobuf)
+- C++17 compiler (gcc or clang)
+- gRPC and Protocol Buffers
+- Boost (container component)
+- Folly
+- fmt
+- nlohmann\_json
+- gflags and glog
+- libsnappy, liblz4 and libzstd
+- libiberty (from binutils, required by folly)
+- GTest (for running the unit tests)
 - Git (for submodules)
+
+### Installing Folly on Ubuntu
+
+Folly is not available in the standard Ubuntu repositories. Use the
+following steps to build and install it from source:
+
+```bash
+sudo apt-get install -y git cmake g++ libboost-all-dev \
+    libdouble-conversion-dev libgoogle-glog-dev libgflags-dev \
+    libevent-dev libssl-dev libfmt-dev libiberty-dev \
+    libsnappy-dev liblz4-dev libzstd-dev
+
+git clone https://github.com/facebook/folly.git
+cd folly
+git submodule update --init --recursive
+mkdir _build && cd _build
+cmake ..
+make -j$(nproc)
+sudo make install
+```
+
+More details are available in Folly's [installation guide](https://github.com/facebook/folly).
 
 ## Building the Project
 
@@ -17,35 +50,41 @@ This project implements a key-value store using SPDK and gRPC. It provides a sim
    cd SpdkKeyValueStore
    ```
 
-2. Initialize and update submodules:
+2. Install the required system packages (Ubuntu example):
+   ```bash
+   sudo apt-get update
+   sudo apt-get install -y cmake g++ libboost-container-dev \
+       libgrpc++-dev protobuf-compiler libprotobuf-dev \
+       libgoogle-glog-dev libgflags-dev nlohmann-json3-dev \
+       libfmt-dev libsnappy-dev liblz4-dev libzstd-dev libiberty-dev
+   ```
+
+   If Folly is not available as a package, follow the steps in the
+   [Installing Folly on Ubuntu](#installing-folly-on-ubuntu) section.
+3. Initialize and update submodules:
    ```bash
    git submodule update --init --recursive
    ```
-
-3. Create a build directory and navigate into it:
+4. Create a build directory and navigate into it:
    ```bash
    mkdir build
    cd build
    ```
-
-4. Configure the project with CMake:
+5. Configure the project with CMake:
    ```bash
    cmake ..
    ```
    This step also generates the protobuf and gRPC source files in the
    `build/` directory.
-
-5. Build the project:
+6. Build the project:
    ```bash
    make
    ```
-
-6. Run the server:
+7. Run the server:
    ```bash
    ./server
    ```
-
-7. In another terminal, run the client:
+8. In another terminal, run the client:
    ```bash
    ./client
    ```
