@@ -6,6 +6,7 @@
 #include <grpcpp/grpcpp.h>
 #include <iostream>
 #include <kvstore.grpc.pb.h>
+#include "wal.h"
 #include <memory>
 #include <string>
 #include <thread>
@@ -39,8 +40,26 @@ public:
   using SkipListPtr = std::shared_ptr<SkipList>;
   using Accessor = SkipList::Accessor;
 
-  AsyncKVServer(const std::string &address)
-      : address_(address), store_(SkipList::createInstance()) {}
+  AsyncKVServer(const std::string &address, std::unique_ptr<WAL> wal = nullptr)
+      : address_(address), store_(SkipList::createInstance()),
+        wal_(std::move(wal)) {
+    if (wal_) {
+      auto entries = wal_->replay();
+      for (const auto &e : entries) {
+        Accessor accessor(store_);
+        if (e.op_type == WalOpType::PUT) {
+          auto kv = std::make_pair(e.key, e.value);
+          auto it = accessor.find(kv);
+          if (it != accessor.end())
+            accessor.erase(kv);
+          accessor.insert(kv);
+        } else if (e.op_type == WalOpType::DELETE) {
+          auto search = std::make_pair(e.key, "");
+          accessor.erase(search);
+        }
+      }
+    }
+  }
 
   void Run(int num_cqs = 4, int threads_per_cq = 2) {
     ServerBuilder builder;
@@ -72,8 +91,8 @@ private:
   class PutCallData : public CallDataBase {
   public:
     PutCallData(KeyValueStore::AsyncService *service, ServerCompletionQueue *cq,
-                SkipListPtr &store)
-        : service_(service), cq_(cq), responder_(&ctx_), store_(store),
+                SkipListPtr &store, WAL *wal)
+        : service_(service), cq_(cq), responder_(&ctx_), store_(store), wal_(wal),
           status_(CREATE) {
       Proceed(true);
     }
@@ -84,7 +103,7 @@ private:
         service_->RequestPut(&ctx_, &request_, &responder_, cq_, cq_, this);
       } else if (status_ == PROCESS) {
         // Spawn next handler
-        new PutCallData(service_, cq_, store_);
+        new PutCallData(service_, cq_, store_, wal_);
         // Process request
         {
           AsyncKVServer::Accessor accessor(store_);
@@ -94,6 +113,8 @@ private:
             accessor.erase(kv);
           accessor.insert(kv);
         }
+        if (wal_)
+          wal_->append({WalOpType::PUT, request_.key(), request_.value()});
         response_.set_success(true);
         status_ = FINISH;
         responder_.Finish(response_, Status::OK, this);
@@ -113,6 +134,7 @@ private:
     PutResponse response_;
     ServerAsyncResponseWriter<PutResponse> responder_;
     SkipListPtr &store_;
+    WAL *wal_;
   };
 
   // GET handler
@@ -166,8 +188,8 @@ private:
   class DeleteCallData : public CallDataBase {
   public:
     DeleteCallData(KeyValueStore::AsyncService *service,
-                   ServerCompletionQueue *cq, SkipListPtr &store)
-        : service_(service), cq_(cq), responder_(&ctx_), store_(store),
+                   ServerCompletionQueue *cq, SkipListPtr &store, WAL *wal)
+        : service_(service), cq_(cq), responder_(&ctx_), store_(store), wal_(wal),
           status_(CREATE) {
       Proceed(true);
     }
@@ -177,13 +199,15 @@ private:
         status_ = PROCESS;
         service_->RequestDelete(&ctx_, &request_, &responder_, cq_, cq_, this);
       } else if (status_ == PROCESS) {
-        new DeleteCallData(service_, cq_, store_);
+        new DeleteCallData(service_, cq_, store_, wal_);
         {
           AsyncKVServer::Accessor accessor(store_);
           auto search = std::make_pair(request_.key(), "");
           auto it = accessor.find(search);
           if (it != accessor.end()) {
             accessor.erase(search);
+            if (wal_)
+              wal_->append({WalOpType::DELETE, request_.key(), ""});
             response_.set_success(true);
           } else {
             response_.set_success(false);
@@ -206,13 +230,14 @@ private:
     DeleteResponse response_;
     ServerAsyncResponseWriter<DeleteResponse> responder_;
     SkipListPtr &store_;
+    WAL *wal_;
   };
 
   void HandleRpcs(ServerCompletionQueue *cq) {
     // One of each to start
-    new PutCallData(&service_, cq, store_);
+    new PutCallData(&service_, cq, store_, wal_.get());
     new GetCallData(&service_, cq, store_);
-    new DeleteCallData(&service_, cq, store_);
+    new DeleteCallData(&service_, cq, store_, wal_.get());
     void *tag;
     bool ok;
     while (cq->Next(&tag, &ok)) {
@@ -227,6 +252,7 @@ private:
   std::vector<std::unique_ptr<ServerCompletionQueue>> cqs_;
   std::vector<std::thread> threads_;
   std::unique_ptr<Server> server_;
+  std::unique_ptr<WAL> wal_;
 };
 
 #endif // SERVER_IMPL_H

@@ -18,7 +18,7 @@ python -m grpc_tools.protoc -I../../proto \
     ../../proto/kvstore.proto
 
 # Run tests
-pytest -v test_kvstore.py
+pytest -v
 
 # Deactivate virtual environment
 deactivate 
