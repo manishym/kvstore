@@ -41,8 +41,9 @@ def server_process(server_port):
         subprocess.run(["cmake", "--build", build_dir], check=True)
     
     # Start the server with output redirected to pipes
+    config_path = os.path.join(base_dir, "src", "config", "runtime_config.json")
     process = subprocess.Popen(
-        [server_path],
+        [server_path, config_path],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,  # Use text mode for easier output handling

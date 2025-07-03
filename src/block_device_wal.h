@@ -26,9 +26,35 @@ public:
 
   bool appendBatch(const std::vector<WalEntry> &entries) override {
     std::lock_guard<std::mutex> lock(mu_);
-    for (const auto &e : entries)
-      if (!writeEntry(e))
+
+    // Serialize all entries into a single buffer and issue one write
+    std::vector<char> buffer;
+    buffer.reserve(entries.size() * 32); // rough estimate to minimize realloc
+
+    for (const auto &e : entries) {
+      uint8_t op = static_cast<uint8_t>(e.op_type);
+      uint32_t klen = e.key.size();
+      uint32_t vlen = e.value.size();
+
+      buffer.push_back(static_cast<char>(op));
+      const char *pk = reinterpret_cast<const char *>(&klen);
+      buffer.insert(buffer.end(), pk, pk + sizeof(klen));
+      const char *pv = reinterpret_cast<const char *>(&vlen);
+      buffer.insert(buffer.end(), pv, pv + sizeof(vlen));
+      buffer.insert(buffer.end(), e.key.data(), e.key.data() + klen);
+      if (vlen)
+        buffer.insert(buffer.end(), e.value.data(), e.value.data() + vlen);
+    }
+
+    size_t total = buffer.size();
+    const char *data = buffer.data();
+    while (total > 0) {
+      ssize_t written = ::write(fd_, data, total);
+      if (written <= 0)
         return false;
+      data += written;
+      total -= written;
+    }
     return true;
   }
 
