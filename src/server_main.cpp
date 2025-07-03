@@ -1,6 +1,5 @@
 #include "server_impl.h"
-#include "block_device_wal.h"
-#include "spdk_wal.h"
+#include "wal_factory.h"
 #include <fstream>
 #include <nlohmann/json.hpp>
 
@@ -15,16 +14,7 @@ int main(int argc, char **argv) {
   }
 
   std::string address = config.value("address", "0.0.0.0:50051");
-  std::unique_ptr<WAL> wal;
-  if (config.contains("wal")) {
-    auto w = config["wal"];
-    std::string type = w.value("type", "block");
-    std::string device = w.value("device", "kvstore.wal");
-    if (type == "block")
-      wal = std::make_unique<BlockDeviceWAL>(device);
-    else if (type == "spdk")
-      wal = std::make_unique<SpdkWAL>(device);
-  }
+  std::unique_ptr<WAL> wal = createWAL(config);
 
   AsyncKVServer server(address, std::move(wal));
   server.Run();

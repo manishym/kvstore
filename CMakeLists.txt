@@ -103,6 +103,7 @@ add_executable(kvstore_tests
     tests/unit/server_test.cpp
     tests/unit/map_test.cpp
     tests/unit/block_device_wal_test.cpp
+    tests/unit/wal_factory_test.cpp
     src/server.cpp
     ${PROTO_SRCS}
     ${PROTO_HDRS}
