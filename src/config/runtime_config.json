@@ -8,5 +8,8 @@
         "std_map": {
             "initial_size": 1000
         }
+    },
+    "wal": {
+        "type": "none"
     }
 }

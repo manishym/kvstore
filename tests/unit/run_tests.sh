@@ -16,6 +16,9 @@ cmake -DCMAKE_BUILD_TYPE=Coverage ../../..
 # Build
 make -j$(nproc)
 
+# Copy the default runtime config so tests can find it
+cp ../../../src/config/runtime_config.json runtime_config.json
+
 # Run tests
 ./kvstore_tests
 
