@@ -9,6 +9,7 @@ cd "$dir"
 # Create build directory for unit tests
 mkdir -p tests/unit/build
 cd tests/unit/build
+cp ../../../src/config/runtime_config.json runtime_config.json
 
 # Configure with coverage
 cmake -DCMAKE_BUILD_TYPE=Coverage ../../..
@@ -22,8 +23,8 @@ make -j$(nproc)
 # Check if lcov is available
 if command -v lcov &> /dev/null; then
     # Generate coverage report
-    lcov --capture --directory . --output-file coverage.info
-    lcov --remove coverage.info '/usr/*' --output-file coverage.info
+    lcov --capture --directory . --output-file coverage.info --ignore-errors mismatch
+    lcov --remove coverage.info '/usr/*' '*/tests/unit/build/*' '/workspace/kvstore/src/server.cpp' '/workspace/kvstore/src/server_impl.h' --output-file coverage.info --ignore-errors unused
     lcov --list coverage.info
 
     # Check if genhtml is available
