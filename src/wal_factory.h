@@ -9,9 +9,9 @@ inline std::unique_ptr<WAL> createWAL(const nlohmann::json &config) {
   if (!config.contains("wal")) {
     return std::make_unique<PassThroughWAL>();
   }
-  auto w = config["wal"];
-  std::string type = w.value("type", "none");
-  std::string device = w.value("device", "kvstore.wal");
+  auto walConfig = config["wal"];
+  std::string type = walConfig.value("type", "none");
+  std::string device = walConfig.value("device", "kvstore.wal");
   if (type == "block") {
     return std::make_unique<BlockDeviceWAL>(device);
   } else if (type == "spdk") {
