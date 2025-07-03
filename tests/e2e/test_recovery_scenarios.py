@@ -3,12 +3,23 @@ import os
 import struct
 import subprocess
 import time
+import socket
 import grpc
 
 import kvstore_pb2
 import kvstore_pb2_grpc
-from conftest import wait_for_port
+from conftest import wait_for_port, wait_for_port_close
 
+def wait_until_server_ready(port, timeout=10.0):
+    """Wait until we can connect to gRPC server on given port."""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        try:
+            with socket.create_connection(("localhost", port), timeout=0.5):
+                return True
+        except (ConnectionRefusedError, socket.timeout):
+            time.sleep(0.1)  # Small, consistent polling interval
+    return False
 
 def build_server():
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -54,8 +65,7 @@ def test_recover_from_crash(tmp_path, server_port):
     channel.close()
     proc.kill()  # simulate crash
     proc.wait()
-    time.sleep(1)
-
+    assert wait_until_server_ready(server_port)
     proc = start_server(server_path, str(config_path), server_port)
     channel = grpc.insecure_channel(f"localhost:{server_port}")
     stub = kvstore_pb2_grpc.KeyValueStoreStub(channel)

@@ -23,6 +23,17 @@ def wait_for_port(port, host="localhost", timeout=10.0):
             time.sleep(0.1)
     return False
 
+def wait_for_port_close(port, host="localhost", timeout=10.0):
+    """Wait for a port to become unavailable."""
+    start = time.time()
+    while time.time() - start < timeout:
+        try:
+            with socket.create_connection((host, port), timeout=1):
+                time.sleep(0.1)
+        except OSError:
+            return True
+    return False
+
 @pytest.fixture(scope="session")
 def server_port():
     """Return a port number for the server."""

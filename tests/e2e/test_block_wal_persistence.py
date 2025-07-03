@@ -1,7 +1,6 @@
 import json
 import os
 import subprocess
-import time
 import grpc
 import tempfile
 
@@ -9,7 +8,7 @@ from conftest import wait_for_port
 
 import kvstore_pb2
 import kvstore_pb2_grpc
-
+from conftest import wait_for_port, wait_for_port_close
 
 
 def build_server():
@@ -56,7 +55,8 @@ def test_block_device_wal_persistence(tmp_path, server_port):
     channel.close()
     proc.terminate()
     proc.wait()
-    time.sleep(1)
+    if not wait_for_port_close(server_port, timeout=10):
+        raise RuntimeError("Server failed to shut down")
 
     proc = start_server(server_path, str(config_path), server_port)
     channel = grpc.insecure_channel(f"localhost:{server_port}")
