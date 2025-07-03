@@ -120,7 +120,11 @@ func writeCSV(filePath string, allResults []Result) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() {
+		if cerr := f.Close(); cerr != nil {
+			err = fmt.Errorf("failed to close file: %w", cerr)
+		}
+	}()
 
 	w := csv.NewWriter(f)
 
