@@ -68,13 +68,15 @@ set(COMMON_LIBS
 )
 
 # Add server executable
-add_executable(server 
-    src/server.cpp 
+add_executable(server
+    src/server.cpp
     src/server_impl.h
     src/server_main.cpp
-    ${PROTO_SRCS} 
-    ${PROTO_HDRS} 
-    ${GRPC_SRCS} 
+    src/wal_serializer.cpp
+    src/file_buffer_writer.cpp
+    ${PROTO_SRCS}
+    ${PROTO_HDRS}
+    ${GRPC_SRCS}
     ${GRPC_HDRS}
 )
 
@@ -84,8 +86,10 @@ target_link_libraries(server ${COMMON_LIBS} dl z snappy lz4 zstd pthread glog gf
 target_include_directories(server PRIVATE ${COMMON_INCLUDE_DIRS} ${CMAKE_CURRENT_BINARY_DIR})
 
 # Add client executable
-add_executable(client 
+add_executable(client
     src/client.cpp
+    src/wal_serializer.cpp
+    src/file_buffer_writer.cpp
     ${PROTO_SRCS}
     ${PROTO_HDRS}
     ${GRPC_SRCS}
@@ -104,7 +108,10 @@ add_executable(kvstore_tests
     tests/unit/map_test.cpp
     tests/unit/block_device_wal_test.cpp
     tests/unit/wal_factory_test.cpp
+    tests/unit/wal_serializer_test.cpp
     src/server.cpp
+    src/wal_serializer.cpp
+    src/file_buffer_writer.cpp
     ${PROTO_SRCS}
     ${PROTO_HDRS}
     ${GRPC_SRCS}

@@ -1,7 +1,9 @@
 #pragma once
 #include "wal.h"
+#include "wal_entry_serializer.h"
 #include <fcntl.h>
 #include <unistd.h>
+#include <cstring>
 #include <mutex>
 #include <stdexcept>
 #include <vector>
@@ -21,14 +23,17 @@ public:
 
   bool append(const WalEntry &entry) override {
     std::lock_guard<std::mutex> lock(mu_);
-    return writeEntry(entry);
+    auto buf = WalEntrySerializer::serialize(entry);
+    return writeAll(fd_, buf.data(), buf.size());
   }
 
   bool appendBatch(const std::vector<WalEntry> &entries) override {
     std::lock_guard<std::mutex> lock(mu_);
-    for (const auto &e : entries)
-      if (!writeEntry(e))
+    for (const auto &e : entries) {
+      auto buf = WalEntrySerializer::serialize(e);
+      if (!writeAll(fd_, buf.data(), buf.size()))
         return false;
+    }
     return true;
   }
 
@@ -42,24 +47,25 @@ public:
     std::vector<WalEntry> entries;
     ::lseek(fd_, 0, SEEK_SET);
     while (true) {
-      WalEntry e;
-      uint8_t op;
-      uint32_t klen, vlen;
-      ssize_t r = ::read(fd_, &op, 1);
+      uint8_t header[1 + sizeof(uint32_t) * 2];
+      ssize_t r = ::read(fd_, header, sizeof(header));
       if (r == 0)
         break;
-      if (r != 1)
+      if (r != (ssize_t)sizeof(header))
         break;
-      if (::read(fd_, &klen, sizeof(klen)) != sizeof(klen))
+      uint32_t klen, vlen;
+      std::memcpy(&klen, header + 1, sizeof(uint32_t));
+      std::memcpy(&vlen, header + 1 + sizeof(uint32_t), sizeof(uint32_t));
+      std::vector<uint8_t> buf(header, header + sizeof(header));
+      buf.resize(sizeof(header) + klen + vlen);
+      if (::read(fd_, buf.data() + sizeof(header), klen + vlen) !=
+          (ssize_t)(klen + vlen))
         break;
-      if (::read(fd_, &vlen, sizeof(vlen)) != sizeof(vlen))
-        break;
-      e.op_type = static_cast<WalOpType>(op);
-      e.key.resize(klen);
-      if (::read(fd_, e.key.data(), klen) != (ssize_t)klen)
-        break;
-      e.value.resize(vlen);
-      if (vlen > 0 && ::read(fd_, e.value.data(), vlen) != (ssize_t)vlen)
+      WalEntry e;
+      if (!WalEntrySerializer::deserialize(
+              std::string_view(reinterpret_cast<char *>(buf.data()),
+                               buf.size()),
+              e))
         break;
       entries.push_back(std::move(e));
     }
@@ -72,20 +78,14 @@ public:
   uint64_t currentSegmentId() const override { return 0; }
 
 private:
-  bool writeEntry(const WalEntry &entry) {
-    uint8_t op = static_cast<uint8_t>(entry.op_type);
-    uint32_t klen = entry.key.size();
-    uint32_t vlen = entry.value.size();
-    if (::write(fd_, &op, 1) != 1)
-      return false;
-    if (::write(fd_, &klen, sizeof(klen)) != sizeof(klen))
-      return false;
-    if (::write(fd_, &vlen, sizeof(vlen)) != sizeof(vlen))
-      return false;
-    if (::write(fd_, entry.key.data(), klen) != (ssize_t)klen)
-      return false;
-    if (vlen && ::write(fd_, entry.value.data(), vlen) != (ssize_t)vlen)
-      return false;
+  static bool writeAll(int fd, const uint8_t *data, size_t len) {
+    while (len > 0) {
+      ssize_t w = ::write(fd, data, len);
+      if (w <= 0)
+        return false;
+      data += w;
+      len -= w;
+    }
     return true;
   }
 
