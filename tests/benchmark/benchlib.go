@@ -125,7 +125,9 @@ func writeCSV(filePath string, allResults []Result) error {
 	w := csv.NewWriter(f)
 	defer w.Flush()
 
-	w.Write([]string{"Method", "LatencyMs", "Error"})
+	if err := w.Write([]string{"Method", "LatencyMs", "Error"}); err != nil {
+		return err
+	}
 	for _, r := range allResults {
 		errStr := ""
 		if r.Error != nil {
