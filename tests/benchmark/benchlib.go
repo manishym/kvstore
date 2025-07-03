@@ -123,21 +123,26 @@ func writeCSV(filePath string, allResults []Result) error {
 	defer f.Close()
 
 	w := csv.NewWriter(f)
-	defer w.Flush()
 
 	if err := w.Write([]string{"Method", "LatencyMs", "Error"}); err != nil {
-		return err
+		return fmt.Errorf("failed to write header to CSV: %w", err)
 	}
 	for _, r := range allResults {
 		errStr := ""
 		if r.Error != nil {
 			errStr = r.Error.Error()
 		}
-		w.Write([]string{
+		if err := w.Write([]string{
 			r.Method,
 			fmt.Sprintf("%.2f", r.LatencyMs),
 			errStr,
-		})
+		}); err != nil {
+			return fmt.Errorf("failed to write record to CSV: %w", err)
+		}
+	}
+	w.Flush()
+	if err := w.Error(); err != nil {
+		return fmt.Errorf("failed to flush CSV writer: %w", err)
 	}
 	return nil
 }
