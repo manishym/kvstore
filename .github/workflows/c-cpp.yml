@@ -1,0 +1,88 @@
+name: PR Unit Tests
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Install System Packages
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          gcc \
+          g++ \
+          clang \
+          cmake \
+          git \
+          wget \
+          curl \
+          python3 \
+          python3-pip \
+          libnuma-dev \
+          libaio-dev \
+          libssl-dev \
+          uuid-dev \
+          unzip \
+          htop \
+          tmux \
+          jq \
+          libgtest-dev \
+          pkg-config \
+          ca-certificates \
+          gnupg \
+          software-properties-common \
+          libboost-all-dev \
+          libfmt-dev \
+          libgflags-dev \
+          libgoogle-glog-dev \
+          libevent-dev \
+          libjemalloc-dev \
+          libzstd-dev \
+          liblz4-dev \
+          libsnappy-dev \
+          libdouble-conversion-dev \
+          libunwind-dev \
+          zlib1g-dev \
+          binutils-dev \
+          nlohmann-json3-dev \
+          libgrpc++-dev \
+          libgrpc-dev \
+          protobuf-compiler \
+          libprotobuf-dev
+
+    - name: Install FastFloat
+      run: |
+        echo "📂 Installing FastFloat..."
+        git clone https://github.com/fastfloat/fast_float.git || true
+        sudo mkdir -p /usr/local/include/fast_float
+        sudo cp fast_float/include/fast_float/*.h /usr/local/include/fast_float/
+
+    - name: Install Folly
+      run: |
+        echo "📂 Installing Folly..."
+        git clone https://github.com/facebook/folly.git || true
+        cd folly
+        cmake -B _build -S .
+        cmake --build _build -j$(nproc)
+        sudo cmake --install _build
+
+    - name: Build Project
+      run: |
+        mkdir -p build
+        cd build
+        cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Debug
+        ninja
+
+    - name: Run Unit Tests
+      run: |
+        cd build
+        ctest --output-on-failure
