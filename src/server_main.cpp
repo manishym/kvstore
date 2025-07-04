@@ -12,6 +12,7 @@ int main(int argc, char **argv) {
     in >> config;
   } else {
     std::cerr << "Failed to open config " << config_path << ", using defaults\n";
+    config = nlohmann::json::object();
   }
 
   std::string address = config.value("address", "0.0.0.0:50051");

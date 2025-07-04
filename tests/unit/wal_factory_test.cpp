@@ -2,10 +2,10 @@
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 
-TEST(WALFactoryTest, NoneCreatesPassThrough) {
+TEST(WALFactoryTest, NoneCreatesBlockDevice) {
   nlohmann::json cfg;
   auto wal = createWAL(cfg);
-  EXPECT_TRUE(dynamic_cast<PassThroughWAL *>(wal.get()) != nullptr);
+  EXPECT_TRUE(dynamic_cast<BlockDeviceWAL *>(wal.get()) != nullptr);
 }
 
 TEST(WALFactoryTest, BlockCreatesBlockDevice) {
@@ -40,9 +40,9 @@ TEST(WALFactoryTest, SpdkWithDefaultConfig) {
   EXPECT_TRUE(dynamic_cast<SpdkWAL *>(wal.get()) != nullptr);
 }
 
-TEST(WALFactoryTest, InvalidTypeCreatesPassThrough) {
+TEST(WALFactoryTest, InvalidTypeCreatesBlockDevice) {
   nlohmann::json cfg;
   cfg["wal"] = {{"type", "invalid_type"}};
   auto wal = createWAL(cfg);
-  EXPECT_TRUE(dynamic_cast<PassThroughWAL *>(wal.get()) != nullptr);
+  EXPECT_TRUE(dynamic_cast<BlockDeviceWAL *>(wal.get()) != nullptr);
 }
