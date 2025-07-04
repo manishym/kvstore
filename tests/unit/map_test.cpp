@@ -145,3 +145,57 @@ TEST_F(MapTest, StdMapOrderedOperationsTest) {
   EXPECT_EQ(upper->first, "key3");
   EXPECT_EQ(upper->second, "value3");
 }
+
+TEST_F(MapTest, BoostMapEdgeCases) {
+  config["map_type"] = "boost_map";
+  auto map = MapFactory<std::string, std::string>::createMap(config);
+  ASSERT_NE(map, nullptr);
+
+  // Test empty key and value
+  map->insert("", "");
+  std::string value;
+  EXPECT_TRUE(map->get("", value));
+  EXPECT_EQ(value, "");
+
+  // Test duplicate key insertion
+  map->insert("duplicate", "first");
+  map->insert("duplicate", "second");
+  EXPECT_TRUE(map->get("duplicate", value));
+  EXPECT_EQ(value, "second"); // Should overwrite
+
+  // Test non-existent key
+  EXPECT_FALSE(map->get("nonexistent", value));
+}
+
+TEST_F(MapTest, StdMapEdgeCases) {
+  config["map_type"] = "std_map";
+  auto map = MapFactory<std::string, std::string>::createMap(config);
+  ASSERT_NE(map, nullptr);
+
+  // Test empty key and value
+  map->insert("", "");
+  std::string value;
+  EXPECT_TRUE(map->get("", value));
+  EXPECT_EQ(value, "");
+
+  // Test duplicate key insertion
+  map->insert("duplicate", "first");
+  map->insert("duplicate", "second");
+  EXPECT_TRUE(map->get("duplicate", value));
+  EXPECT_EQ(value, "second"); // Should overwrite
+
+  // Test non-existent key
+  EXPECT_FALSE(map->get("nonexistent", value));
+}
+
+TEST_F(MapTest, MapFactoryInvalidType) {
+  config["map_type"] = "invalid_type";
+  auto map = MapFactory<std::string, std::string>::createMap(config);
+  EXPECT_EQ(map, nullptr);
+}
+
+TEST_F(MapTest, MapFactoryMissingType) {
+  config.erase("map_type");
+  auto map = MapFactory<std::string, std::string>::createMap(config);
+  EXPECT_EQ(map, nullptr);
+}

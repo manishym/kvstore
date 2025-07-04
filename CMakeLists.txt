@@ -110,9 +110,14 @@ add_executable(kvstore_tests
     tests/unit/spdk_wal_test.cpp
     tests/unit/wal_factory_test.cpp
     tests/unit/wal_serializer_test.cpp
+    tests/unit/passthrough_wal_test.cpp
+    tests/unit/spdk_wal_test.cpp
+    tests/unit/file_buffer_writer_test.cpp
+    tests/unit/spdk_buffer_writer_test.cpp
     src/server.cpp
     src/wal_serializer.cpp
     src/file_buffer_writer.cpp
+    src/spdk_buffer_writer.cpp
     ${PROTO_SRCS}
     ${PROTO_HDRS}
     ${GRPC_SRCS}
