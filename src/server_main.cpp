@@ -2,6 +2,7 @@
 #include "wal_factory.h"
 #include <fstream>
 #include <nlohmann/json.hpp>
+#include <cstdlib>
 
 int main(int argc, char **argv) {
   std::string config_path = argc > 1 ? argv[1] : "src/config/runtime_config.json";

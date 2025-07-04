@@ -5,9 +5,11 @@ import time
 import grpc
 import tempfile
 
+from conftest import wait_for_port
+
 import kvstore_pb2
 import kvstore_pb2_grpc
-from conftest import wait_for_port
+
 
 
 def build_server():
@@ -20,7 +22,7 @@ def build_server():
     return server_path
 
 
-def start_server(server_path, config_path):
+def start_server(server_path, config_path, port):
     process = subprocess.Popen(
         [server_path, config_path],
         stdout=subprocess.PIPE,
@@ -28,7 +30,7 @@ def start_server(server_path, config_path):
         text=True,
         bufsize=1,
     )
-    if not wait_for_port(50051, timeout=10):
+    if not wait_for_port(port, timeout=10):
         out, err = process.communicate(timeout=1)
         process.terminate()
         process.wait()
@@ -36,19 +38,19 @@ def start_server(server_path, config_path):
     return process
 
 
-def test_block_device_wal_persistence(tmp_path):
+def test_block_device_wal_persistence(tmp_path, server_port):
     server_path = build_server()
     wal_file = tmp_path / "wal.log"
     config_path = tmp_path / "config.json"
     config = {
-        "address": "0.0.0.0:50051",
+        "address": f"0.0.0.0:{server_port}",
         "wal": {"type": "block", "device": str(wal_file)},
     }
     with open(config_path, "w") as f:
         json.dump(config, f)
 
-    proc = start_server(server_path, str(config_path))
-    channel = grpc.insecure_channel("localhost:50051")
+    proc = start_server(server_path, str(config_path), server_port)
+    channel = grpc.insecure_channel(f"localhost:{server_port}")
     stub = kvstore_pb2_grpc.KeyValueStoreStub(channel)
     assert stub.Put(kvstore_pb2.PutRequest(key=b"persist", value=b"value")).success
     channel.close()
@@ -56,8 +58,8 @@ def test_block_device_wal_persistence(tmp_path):
     proc.wait()
     time.sleep(1)
 
-    proc = start_server(server_path, str(config_path))
-    channel = grpc.insecure_channel("localhost:50051")
+    proc = start_server(server_path, str(config_path), server_port)
+    channel = grpc.insecure_channel(f"localhost:{server_port}")
     stub = kvstore_pb2_grpc.KeyValueStoreStub(channel)
     resp = stub.Get(kvstore_pb2.GetRequest(key=b"persist"))
     assert resp.found

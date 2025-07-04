@@ -84,6 +84,9 @@ More details are available in Folly's [installation guide](https://github.com/fa
    ```bash
    ./server
    ```
+   The server listens on port `50051` by default. To use a different port,
+   edit the `address` field in `src/config/runtime_config.json` or pass a
+   custom configuration file as the first argument when starting the server.
 8. In another terminal, run the client:
    ```bash
    ./client
