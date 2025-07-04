@@ -12,6 +12,11 @@ namespace kvstore {
 template <typename K, typename V> class MapFactory {
 public:
   static std::unique_ptr<IMap<K, V>> createMap(const nlohmann::json &config) {
+    // Check if map_type exists in config
+    if (!config.contains("map_type")) {
+      return nullptr;
+    }
+
     std::string map_type = config["map_type"];
 
     if (map_type == "boost_map") {
@@ -25,7 +30,8 @@ public:
           options["initial_size"].get<size_t>());
     }
 
-    throw std::runtime_error("Unknown map type: " + map_type);
+    // Return nullptr for unknown map types instead of throwing
+    return nullptr;
   }
 };
 

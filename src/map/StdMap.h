@@ -12,7 +12,10 @@ public:
   }
 
   bool insert(const K &key, const V &value) override {
-    return map_.insert({key, value}).second;
+    auto it = map_.find(key);
+    bool inserted = it == map_.end();
+    map_[key] = value; // This will overwrite if key exists
+    return inserted;
   }
 
   bool remove(const K &key) override { return map_.erase(key) > 0; }
