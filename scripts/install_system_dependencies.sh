@@ -22,6 +22,7 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
   libaio-dev \
   libboost-all-dev \
   libbsd-dev \
+  libcli11-dev \
   libcunit1-dev \
   libdouble-conversion-dev \
   libevent-dev \

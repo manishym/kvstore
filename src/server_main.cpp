@@ -3,9 +3,15 @@
 #include <fstream>
 #include <nlohmann/json.hpp>
 #include <cstdlib>
+#include <CLI/CLI.hpp>
 
 int main(int argc, char **argv) {
-  std::string config_path = argc > 1 ? argv[1] : "src/config/runtime_config.json";
+  CLI::App app{"My SPDK Key-Value Store"};
+  std::string config_path;
+  app.add_option("-c,--config", config_path, "Path to config file")
+      ->required();
+  CLI11_PARSE(app, argc, argv);
+
   nlohmann::json config;
   std::ifstream in(config_path);
   if (in) {
