@@ -6,69 +6,59 @@ apt-get update
 
 echo "📦 Installing system dependencies..."
 DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+  binutils-dev \
   build-essential \
-  gcc \
-  g++ \
+  ca-certificates \
   clang \
   cmake \
-  git \
-  wget \
   curl \
-  python3 \
-  python3-pip \
-  libnuma-dev \
-  libaio-dev \
-  libssl-dev \
-  uuid-dev \
-  unzip \
-  htop \
-  tmux \
-  jq \
-  libgtest-dev \
-  pkg-config \
-  ca-certificates \
+  g++ \
+  gcc \
+  git \
   gnupg \
-  software-properties-common \
-  libboost-all-dev \
-  libfmt-dev \
-  libgflags-dev \
-  libgoogle-glog-dev \
-  libevent-dev \
-  libjemalloc-dev \
-  libzstd-dev \
-  liblz4-dev \
-  libsnappy-dev \
-  libdouble-conversion-dev \
-  libunwind-dev \
-  zlib1g-dev \
-  binutils-dev \
-  nlohmann-json3-dev \
-  libgrpc++-dev \
-  libgrpc-dev \
-  protobuf-compiler \
-  protobuf-compiler-grpc \
-  libprotobuf-dev \
-  libiberty-dev \
+  htop \
+  jq \
   lcov \
-  libpci-dev \
-  libnuma-dev \
-  uuid-dev \
   libaio-dev \
-  libjson-c-dev \
-  libpci-dev \
-  libnuma-dev \
-  uuid-dev \
-  libaio-dev \
-  libjson-c-dev \
-  libbsd-dev \
-  libfuse3-dev \
-  meson \
-  ninja-build\
+  libboost-all-dev \
   libbsd-dev \
   libcunit1-dev \
+  libdouble-conversion-dev \
+  libevent-dev \
+  libfmt-dev \
+  libfuse3-dev \
+  libgflags-dev \
+  libgoogle-glog-dev \
+  libgrpc++-dev \
+  libgrpc-dev \
+  libgtest-dev \
+  libiberty-dev \
+  libjemalloc-dev \
+  libjson-c-dev \
+  liblz4-dev \
   libncurses-dev \
-  python3 python3-pip\
-  python3-pyelftools 
+  libnuma-dev \
+  libpci-dev \
+  libprotobuf-dev \
+  libsnappy-dev \
+  libssl-dev \
+  libunwind-dev \
+  libzstd-dev \
+  meson \
+  ninja-build \
+  nlohmann-json3-dev \
+  pkg-config \
+  protobuf-compiler \
+  protobuf-compiler-grpc \
+  python3 \
+  python3-pip \
+  python3-pyelftools \
+  software-properties-common \
+  tmux \
+  unzip \
+  uuid-dev \
+  wget \
+  zlib1g-dev
 
 
 echo "✅ System dependencies installed successfully."
