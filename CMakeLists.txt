@@ -12,6 +12,7 @@ find_package(Threads REQUIRED)
 find_package(Boost REQUIRED COMPONENTS container)
 find_package(nlohmann_json REQUIRED)
 find_package(fmt REQUIRED)
+find_package(CLI11 REQUIRED)
 
 # Use the system protoc instead of any local version
 set(Protobuf_PROTOC_EXECUTABLE "/usr/bin/protoc")
@@ -65,6 +66,7 @@ set(COMMON_LIBS
     nlohmann_json::nlohmann_json
     ${FOLLY_LIBRARY}
     fmt::fmt
+    CLI11::CLI11
 )
 
 # Add server executable
