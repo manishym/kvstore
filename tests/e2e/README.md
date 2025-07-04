@@ -15,3 +15,10 @@ cd tests/e2e
 The server binary is built automatically if it does not already exist. Test
 results are shown in the console. The generated gRPC Python files and the
 virtual environment are created locally in this directory.
+
+The tests use port `50051` by default. Set the `KVSTORE_PORT` environment
+variable before running the tests to use a different port:
+
+```bash
+KVSTORE_PORT=60000 ./run_tests.sh
+```

@@ -20,7 +20,7 @@ def build_server():
     return server_path
 
 
-def start_server(server_path, config_path):
+def start_server(server_path, config_path, port):
     process = subprocess.Popen(
         [server_path, config_path],
         stdout=subprocess.PIPE,
@@ -28,7 +28,7 @@ def start_server(server_path, config_path):
         text=True,
         bufsize=1,
     )
-    if not wait_for_port(50051, timeout=10):
+    if not wait_for_port(port, timeout=10):
         out, err = process.communicate(timeout=1)
         process.terminate()
         process.wait()
@@ -36,19 +36,19 @@ def start_server(server_path, config_path):
     return process
 
 
-def test_recover_from_crash(tmp_path):
+def test_recover_from_crash(tmp_path, server_port):
     server_path = build_server()
     wal_file = tmp_path / "wal.log"
     config_path = tmp_path / "config.json"
     config = {
-        "address": "0.0.0.0:50051",
+        "address": f"0.0.0.0:{server_port}",
         "wal": {"type": "block", "device": str(wal_file)},
     }
     with open(config_path, "w") as f:
         json.dump(config, f)
 
-    proc = start_server(server_path, str(config_path))
-    channel = grpc.insecure_channel("localhost:50051")
+    proc = start_server(server_path, str(config_path), server_port)
+    channel = grpc.insecure_channel(f"localhost:{server_port}")
     stub = kvstore_pb2_grpc.KeyValueStoreStub(channel)
     assert stub.Put(kvstore_pb2.PutRequest(key=b"crash", value=b"value")).success
     channel.close()
@@ -56,8 +56,8 @@ def test_recover_from_crash(tmp_path):
     proc.wait()
     time.sleep(1)
 
-    proc = start_server(server_path, str(config_path))
-    channel = grpc.insecure_channel("localhost:50051")
+    proc = start_server(server_path, str(config_path), server_port)
+    channel = grpc.insecure_channel(f"localhost:{server_port}")
     stub = kvstore_pb2_grpc.KeyValueStoreStub(channel)
     resp = stub.Get(kvstore_pb2.GetRequest(key=b"crash"))
     assert resp.found
@@ -67,19 +67,19 @@ def test_recover_from_crash(tmp_path):
     proc.wait()
 
 
-def test_recover_with_corrupt_wal(tmp_path):
+def test_recover_with_corrupt_wal(tmp_path, server_port):
     server_path = build_server()
     wal_file = tmp_path / "wal_corrupt.log"
     config_path = tmp_path / "config.json"
     config = {
-        "address": "0.0.0.0:50051",
+        "address": f"0.0.0.0:{server_port}",
         "wal": {"type": "block", "device": str(wal_file)},
     }
     with open(config_path, "w") as f:
         json.dump(config, f)
 
-    proc = start_server(server_path, str(config_path))
-    channel = grpc.insecure_channel("localhost:50051")
+    proc = start_server(server_path, str(config_path), server_port)
+    channel = grpc.insecure_channel(f"localhost:{server_port}")
     stub = kvstore_pb2_grpc.KeyValueStoreStub(channel)
     assert stub.Put(kvstore_pb2.PutRequest(key=b"good1", value=b"v1")).success
     assert stub.Put(kvstore_pb2.PutRequest(key=b"good2", value=b"v2")).success
@@ -94,8 +94,8 @@ def test_recover_with_corrupt_wal(tmp_path):
         f.write(struct.pack("<I", 4))
         f.write(b"bad")  # incomplete key
 
-    proc = start_server(server_path, str(config_path))
-    channel = grpc.insecure_channel("localhost:50051")
+    proc = start_server(server_path, str(config_path), server_port)
+    channel = grpc.insecure_channel(f"localhost:{server_port}")
     stub = kvstore_pb2_grpc.KeyValueStoreStub(channel)
     resp1 = stub.Get(kvstore_pb2.GetRequest(key=b"good1"))
     assert resp1.found and resp1.value == b"v1"

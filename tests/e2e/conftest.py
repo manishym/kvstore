@@ -1,6 +1,8 @@
 import os
 import subprocess
 import time
+import tempfile
+import json
 import pytest
 import grpc
 import socket
@@ -24,7 +26,7 @@ def wait_for_port(port, host="localhost", timeout=10.0):
 @pytest.fixture(scope="session")
 def server_port():
     """Return a port number for the server."""
-    return 50051
+    return int(os.environ.get("KVSTORE_PORT", "50051"))
 
 @pytest.fixture(scope="session")
 def server_process(server_port):
@@ -41,12 +43,20 @@ def server_process(server_port):
         subprocess.run(["cmake", "--build", build_dir], check=True)
     
     # Start the server with output redirected to pipes
+    config_src = os.path.join(base_dir, "src", "config", "runtime_config.json")
+    with open(config_src) as f:
+        config = json.load(f)
+    config["address"] = f"0.0.0.0:{server_port}"
+    temp_config = tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".json")
+    json.dump(config, temp_config)
+    temp_config.close()
+
     process = subprocess.Popen(
-        [server_path],
+        [server_path, temp_config.name],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,  # Use text mode for easier output handling
-        bufsize=1   # Line buffered
+        bufsize=1  # Line buffered
     )
     
     # Wait for server to start
@@ -65,7 +75,7 @@ def server_process(server_port):
     print(f"Server started successfully on port {server_port}")
     
     yield process
-    
+
     # Cleanup
     process.terminate()
     try:
@@ -73,6 +83,7 @@ def server_process(server_port):
     except subprocess.TimeoutExpired:
         process.kill()
         process.wait()
+    os.unlink(temp_config.name)
 
 @pytest.fixture(scope="session")
 def grpc_channel(server_port, server_process):
