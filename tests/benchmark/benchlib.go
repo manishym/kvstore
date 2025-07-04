@@ -5,9 +5,11 @@ import (
 	"encoding/csv"
 	"fmt"
 	"log"
+	"math"
 	"math/rand"
 	"os"
 	"path/filepath"
+	"sort"
 	"sync"
 	"time"
 
@@ -115,7 +117,20 @@ func worker(cfg *Config, wg *sync.WaitGroup, jobs <-chan int, results chan<- Res
 	}
 }
 
-func writeCSV(filePath string, allResults []Result) error {
+func percentile(sorted []float64, p float64) float64 {
+	if len(sorted) == 0 {
+		return 0
+	}
+	index := int(math.Ceil(p/100*float64(len(sorted)))) - 1
+	if index < 0 {
+		index = 0
+	} else if index >= len(sorted) {
+		index = len(sorted) - 1
+	}
+	return sorted[index]
+}
+
+func writeCSV(filePath string, cfg Config, dur time.Duration, allResults []Result) error {
 	f, err := os.Create(filePath)
 	if err != nil {
 		return err
@@ -128,22 +143,73 @@ func writeCSV(filePath string, allResults []Result) error {
 
 	w := csv.NewWriter(f)
 
-	if err := w.Write([]string{"Method", "LatencyMs", "Error"}); err != nil {
+	header := []string{"Timestamp", "Operation", "Total Requests", "Concurrency",
+		"Total Time (s)", "Average Latency (ms)", "Fastest (ms)", "Slowest (ms)",
+		"RPS", "Error Count", "Error Rate", "P10 (ms)", "P25 (ms)", "P50 (ms)",
+		"P75 (ms)", "P90 (ms)", "P95 (ms)", "P99 (ms)"}
+	if err := w.Write(header); err != nil {
 		return fmt.Errorf("failed to write header to CSV: %w", err)
 	}
+
+	lats := make([]float64, 0, len(allResults))
+	errCount := 0
+	fastest := math.MaxFloat64
+	slowest := 0.0
+	totalLat := 0.0
 	for _, r := range allResults {
-		errStr := ""
-		if r.Error != nil {
-			errStr = r.Error.Error()
+		lats = append(lats, r.LatencyMs)
+		totalLat += r.LatencyMs
+		if r.LatencyMs < fastest {
+			fastest = r.LatencyMs
 		}
-		if err := w.Write([]string{
-			r.Method,
-			fmt.Sprintf("%.2f", r.LatencyMs),
-			errStr,
-		}); err != nil {
-			return fmt.Errorf("failed to write record to CSV: %w", err)
+		if r.LatencyMs > slowest {
+			slowest = r.LatencyMs
+		}
+		if r.Error != nil {
+			errCount++
 		}
 	}
+	sort.Float64s(lats)
+	avg := 0.0
+	if len(allResults) > 0 {
+		avg = totalLat / float64(len(allResults))
+	}
+
+	totalTime := dur.Seconds()
+	rps := 0.0
+	if totalTime > 0 {
+		rps = float64(len(allResults)) / totalTime
+	}
+	errRate := 0.0
+	if len(allResults) > 0 {
+		errRate = (float64(errCount) / float64(len(allResults))) * 100
+	}
+
+	row := []string{
+		time.Now().Format(time.RFC3339),
+		"",
+		fmt.Sprintf("%d", cfg.TotalRequests),
+		fmt.Sprintf("%d", cfg.Concurrency),
+		fmt.Sprintf("%.2f", totalTime),
+		fmt.Sprintf("%.2f", avg),
+		fmt.Sprintf("%.2f", fastest),
+		fmt.Sprintf("%.2f", slowest),
+		fmt.Sprintf("%.2f", rps),
+		fmt.Sprintf("%d", errCount),
+		fmt.Sprintf("%.2f", errRate),
+		fmt.Sprintf("%.2f", percentile(lats, 10)),
+		fmt.Sprintf("%.2f", percentile(lats, 25)),
+		fmt.Sprintf("%.2f", percentile(lats, 50)),
+		fmt.Sprintf("%.2f", percentile(lats, 75)),
+		fmt.Sprintf("%.2f", percentile(lats, 90)),
+		fmt.Sprintf("%.2f", percentile(lats, 95)),
+		fmt.Sprintf("%.2f", percentile(lats, 99)),
+	}
+
+	if err := w.Write(row); err != nil {
+		return fmt.Errorf("failed to write record to CSV: %w", err)
+	}
+
 	w.Flush()
 	if err := w.Error(); err != nil {
 		return fmt.Errorf("failed to flush CSV writer: %w", err)
@@ -191,6 +257,8 @@ func RunBenchmarks(cfg Config) error {
 	jobs := make(chan int, cfg.TotalRequests)
 	results := make(chan Result, cfg.TotalRequests)
 
+	startTime := time.Now()
+
 	var wg sync.WaitGroup
 	for i := 0; i < cfg.Concurrency; i++ {
 		wg.Add(1)
@@ -203,6 +271,8 @@ func RunBenchmarks(cfg Config) error {
 	close(jobs)
 	wg.Wait()
 	close(results)
+
+	duration := time.Since(startTime)
 
 	all := []Result{}
 	for r := range results {
@@ -217,7 +287,7 @@ func RunBenchmarks(cfg Config) error {
 	name += ".csv"
 	outPath := filepath.Join("results", name)
 	log.Println("Writing CSV output to:", outPath)
-	if err := writeCSV(outPath, all); err != nil {
+	if err := writeCSV(outPath, cfg, duration, all); err != nil {
 		return fmt.Errorf("failed to write CSV: %w", err)
 	}
 	log.Println("Benchmark complete. CSV output saved to", outPath)
