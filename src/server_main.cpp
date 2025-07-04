@@ -7,8 +7,9 @@
 
 int main(int argc, char **argv) {
   CLI::App app{"My SPDK Key-Value Store"};
-  std::string config_path = "src/config/runtime_config.json";
-  app.add_option("-c,--config", config_path, "Path to config file");
+  std::string config_path;
+  app.add_option("-c,--config", config_path, "Path to config file")
+      ->required();
   CLI11_PARSE(app, argc, argv);
 
   nlohmann::json config;
