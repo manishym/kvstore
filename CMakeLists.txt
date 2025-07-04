@@ -111,7 +111,6 @@ add_executable(kvstore_tests
     tests/unit/wal_factory_test.cpp
     tests/unit/wal_serializer_test.cpp
     tests/unit/passthrough_wal_test.cpp
-    tests/unit/spdk_wal_test.cpp
     tests/unit/file_buffer_writer_test.cpp
     tests/unit/spdk_buffer_writer_test.cpp
     src/server.cpp

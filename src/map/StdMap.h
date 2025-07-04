@@ -12,9 +12,7 @@ public:
   }
 
   bool insert(const K &key, const V &value) override {
-    auto it = map_.find(key);
-    bool inserted = it == map_.end();
-    map_[key] = value; // This will overwrite if key exists
+    auto [it, inserted] = map_.insert_or_assign(key, value);
     return inserted;
   }
 
