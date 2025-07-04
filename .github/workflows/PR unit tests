@@ -1,0 +1,32 @@
+name: PR Unit Tests
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Run Dependency Installer Script
+      run: |
+        chmod +x scripts/install_system_dependencies.sh
+        sudo bash scripts/install_system_dependencies.sh
+
+    - name: Build Project
+      run: |
+        mkdir -p build
+        cd build
+        cmake .. -DCMAKE_BUILD_TYPE=Debug
+        make -j$(nproc)
+
+    - name: Run Unit Tests
+      run: |
+        cd build
+        cp ../src/config/runtime_config.json .
+        ctest --output-on-failure
