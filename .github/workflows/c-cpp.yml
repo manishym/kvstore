@@ -71,16 +71,16 @@ jobs:
         echo "📂 Installing Folly..."
         git clone https://github.com/facebook/folly.git || true
         cd folly
-        cmake -B _build -S .
-        cmake --build _build -j$(nproc)
-        sudo cmake --install _build
+        cmake -S . -B _build
+        make -C _build -j$(nproc)
+        sudo make -C _build install
 
     - name: Build Project
       run: |
         mkdir -p build
         cd build
-        cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Debug
-        ninja
+        cmake .. -DCMAKE_BUILD_TYPE=Debug
+        make -j$(nproc)
 
     - name: Run Unit Tests
       run: |
