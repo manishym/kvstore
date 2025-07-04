@@ -187,7 +187,7 @@ func writeCSV(filePath string, cfg Config, dur time.Duration, allResults []Resul
 
 	row := []string{
 		time.Now().Format(time.RFC3339),
-		"",
+		cfg.Tag,
 		fmt.Sprintf("%d", cfg.TotalRequests),
 		fmt.Sprintf("%d", cfg.Concurrency),
 		fmt.Sprintf("%.2f", totalTime),
