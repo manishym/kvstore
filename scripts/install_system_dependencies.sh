@@ -49,7 +49,27 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
   protobuf-compiler-grpc \
   libprotobuf-dev \
   libiberty-dev \
-  lcov
+  lcov \
+  libpci-dev \
+  libnuma-dev \
+  uuid-dev \
+  libaio-dev \
+  libjson-c-dev \
+  libpci-dev \
+  libnuma-dev \
+  uuid-dev \
+  libaio-dev \
+  libjson-c-dev \
+  libbsd-dev \
+  libfuse3-dev \
+  meson \
+  ninja-build\
+  libbsd-dev \
+  libcunit1-dev \
+  libncurses-dev \
+  python3 python3-pip\
+  python3-pyelftools 
+
 
 echo "✅ System dependencies installed successfully."
 
@@ -65,6 +85,25 @@ cd /tmp/folly
 cmake -S . -B _build
 make -C _build -j$(nproc)
 make -C _build install
+cd /
 rm -rf /tmp/folly
+
+
+echo "📦 Installing SPDK..."
+
+# Clone and build SPDK
+git clone https://github.com/spdk/spdk.git /tmp/spdk
+cd /tmp/spdk
+git submodule update --init
+
+# Use minimal build to save time
+./configure --prefix=/usr/local --with-shared --without-nvme-cuse
+make -j$(nproc)
+make install
+
+cd /
+rm -rf /tmp/spdk
+
+echo "✅ SPDK installed."
 
 echo "✅ FastFloat and Folly installed successfully."

@@ -1,11 +1,13 @@
 #pragma once
 #include "wal.h"
 #include "wal_entry_serializer.h"
-#include <fcntl.h>
-#include <unistd.h>
 #include <cstring>
+#include <fcntl.h>
 #include <mutex>
+#include <nlohmann/json.hpp>
 #include <stdexcept>
+#include <type_traits>
+#include <unistd.h>
 #include <vector>
 
 class BlockDeviceWAL : public WAL {
@@ -14,6 +16,24 @@ public:
     fd_ = ::open(path.c_str(), O_CREAT | O_RDWR | O_APPEND, 0666);
     if (fd_ < 0)
       throw std::runtime_error("Failed to open WAL device");
+  }
+
+  template <typename T>
+  explicit BlockDeviceWAL(
+      const T &deviceConfig,
+      typename std::enable_if<std::is_same<T, nlohmann::json>::value>::type * =
+          nullptr) {
+    std::string path;
+    if (deviceConfig.is_object()) {
+      // New configuration format
+      path = deviceConfig.value("path", "kvstore_block.wal");
+    } else {
+      path = "kvstore_block.wal"; // fallback
+    }
+
+    fd_ = ::open(path.c_str(), O_CREAT | O_RDWR | O_APPEND, 0666);
+    if (fd_ < 0)
+      throw std::runtime_error("Failed to open WAL device: " + path);
   }
 
   ~BlockDeviceWAL() override {

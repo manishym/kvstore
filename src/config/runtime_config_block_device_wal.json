@@ -1,0 +1,6 @@
+{
+    "wal": {
+        "type": "block",
+        "device": "kvstore_block.wal"
+    }
+}
