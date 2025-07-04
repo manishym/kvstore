@@ -6,11 +6,11 @@
 #include <nlohmann/json.hpp>
 
 inline std::unique_ptr<WAL> createWAL(const nlohmann::json &config) {
-  if (!config.contains("wal")) {
-    return std::make_unique<PassThroughWAL>();
-  }
-  auto walConfig = config["wal"];
-  std::string type = walConfig.value("type", "none");
+  const nlohmann::json &walConfig =
+      (config.contains("wal") && config["wal"].is_object())
+          ? config["wal"]
+          : nlohmann::json::object();
+  std::string type = walConfig.value("type", "block");
 
   if (type == "block") {
     if (walConfig.contains("device")) {
@@ -36,5 +36,6 @@ inline std::unique_ptr<WAL> createWAL(const nlohmann::json &config) {
       return std::make_unique<SpdkWAL>(defaultSpdkConfig);
     }
   }
-  return std::make_unique<PassThroughWAL>();
+  // Fallback to block device WAL for unknown or unspecified types
+  return std::make_unique<BlockDeviceWAL>("kvstore_block.wal");
 }
