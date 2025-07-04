@@ -12,7 +12,8 @@ public:
   }
 
   bool insert(const K &key, const V &value) override {
-    return map_.insert({key, value}).second;
+    auto [it, inserted] = map_.insert_or_assign(key, value);
+    return inserted;
   }
 
   bool remove(const K &key) override { return map_.erase(key) > 0; }
