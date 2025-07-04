@@ -1,0 +1,26 @@
+# Build artifacts
+build/
+*.o
+*.a
+*.so
+
+# Editor/IDE stuff
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS clutter
+.DS_Store
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile
+.dockerignore
