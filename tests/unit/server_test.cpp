@@ -1,4 +1,5 @@
 #include "server_impl.h"
+#include "passthrough_wal.h"
 #include <chrono>
 #include <grpcpp/grpcpp.h>
 #include <gtest/gtest.h>
@@ -6,6 +7,7 @@
 #include <memory>
 #include <string>
 #include <thread>
+#include <cstdlib>
 
 using grpc::Channel;
 using grpc::ClientContext;
@@ -24,7 +26,11 @@ protected:
   static void SetUpTestSuite() {
     // Start server
     server_thread_ = std::thread([]() {
-      async_server_ = std::make_unique<AsyncKVServer>("0.0.0.0:50051");
+      // Use a PassThroughWAL so that the WAL related code paths in the
+      // server are exercised without requiring persistent storage.
+      auto wal = std::make_unique<PassThroughWAL>();
+      async_server_ =
+          std::make_unique<AsyncKVServer>("0.0.0.0:50051", std::move(wal));
       async_server_->Run(4, 2); // 4 CQs, 2 threads each (adjust for your CPU)
     });
     // Wait for server to start (could add a health check here)
@@ -92,6 +98,49 @@ TEST_F(KeyValueStoreTest, PutAndGet) {
   ASSERT_EQ(get_response.value(), value);
 }
 
+TEST_F(KeyValueStoreTest, GetNonExistentKey) {
+  GetRequest request;
+  request.set_key("missing");
+  GetResponse response;
+  ClientContext ctx;
+  Status status = stub_->Get(&ctx, request, &response);
+  ASSERT_TRUE(status.ok());
+  EXPECT_FALSE(response.found());
+}
+
+TEST_F(KeyValueStoreTest, PutDeleteAndGet) {
+  std::string key = "todel";
+  std::string value = "data";
+
+  PutRequest put_request;
+  put_request.set_key(key);
+  put_request.set_value(value);
+  PutResponse put_resp;
+  ClientContext put_ctx;
+  ASSERT_TRUE(stub_->Put(&put_ctx, put_request, &put_resp).ok());
+  ASSERT_TRUE(put_resp.success());
+
+  DeleteRequest del_req;
+  del_req.set_key(key);
+  DeleteResponse del_resp;
+  ClientContext del_ctx;
+  ASSERT_TRUE(stub_->Delete(&del_ctx, del_req, &del_resp).ok());
+  EXPECT_TRUE(del_resp.success());
+
+  GetRequest get_req;
+  get_req.set_key(key);
+  GetResponse get_resp;
+  ClientContext get_ctx;
+  ASSERT_TRUE(stub_->Get(&get_ctx, get_req, &get_resp).ok());
+  EXPECT_FALSE(get_resp.found());
+
+  // Deleting again should report failure
+  ClientContext del_ctx2;
+  DeleteResponse del_resp2;
+  ASSERT_TRUE(stub_->Delete(&del_ctx2, del_req, &del_resp2).ok());
+  EXPECT_FALSE(del_resp2.success());
+}
+
 // (Paste the rest of your test cases as before...)
 
 int main(int argc, char **argv) {
@@ -99,4 +148,15 @@ int main(int argc, char **argv) {
   int rc = RUN_ALL_TESTS();
   // Optionally terminate to kill async server after tests complete
   std::exit(rc);
+}
+
+// ---------------------------------------------------------------------------
+// Additional test to exercise server.cpp without starting the real server.
+// ---------------------------------------------------------------------------
+extern void RunServerMain();
+
+TEST(ServerMainTest, DoesNotRunWhenEnvSet) {
+  ::setenv("KVSTORE_NO_RUN", "1", 1);
+  EXPECT_NO_THROW(RunServerMain());
+  ::unsetenv("KVSTORE_NO_RUN");
 }
