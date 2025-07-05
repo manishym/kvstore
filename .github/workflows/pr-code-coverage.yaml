@@ -20,8 +20,8 @@ jobs:
 
     - name: Run Unit Tests
       run: |
-        chmod +x scripts/runtest.sh
-        ./scripts/runtest.sh
+        chmod +x ./tests/unit/run_tests.sh
+        tests/unit/run_tests.sh
     - name: Save coverage summary to coverage.txt
       if: always()
       run: |
