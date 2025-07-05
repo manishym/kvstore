@@ -47,6 +47,14 @@ jobs:
           tests/unit/build/coverage.info
           tests/unit/build/coverage.txt
 
+    - name: "Read coverage.txt into env var"
+      if: always()
+      id: covsummary
+      run: |
+        echo 'summary<<EOF' >> $GITHUB_OUTPUT
+        tail -n 20 tests/unit/build/coverage.txt || echo "coverage.txt not found" >> $GITHUB_OUTPUT
+        echo 'EOF' >> $GITHUB_OUTPUT
+
     - name: "PR Comment: Coverage Summary"
       if: always()
       uses: marocchino/sticky-pull-request-comment@v2
@@ -54,8 +62,8 @@ jobs:
         header: coverage-summary
         message: |
           ✅ **Unit tests passed.**
-          
+
           📊 **Coverage Summary:**
           ```
-          $(tail -n 20 tests/unit/build/coverage.txt || echo "coverage.txt not found")
+          ${{ steps.covsummary.outputs.summary }}
           ```
