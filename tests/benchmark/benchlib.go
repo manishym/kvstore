@@ -220,76 +220,54 @@ func writeCSV(filePath string, cfg Config, dur time.Duration, allResults []Resul
 // RunBenchmarks executes the benchmark with the provided configuration and
 // writes CSV output to the results directory.
 func RunBenchmarks(cfg Config) error {
-	// fill defaults
-	if cfg.ValueSize == 0 {
-		cfg.ValueSize = 1024
-	}
-	if cfg.KeyCount == 0 {
-		cfg.KeyCount = 10000
-	}
 	if cfg.Concurrency == 0 {
-		cfg.Concurrency = 100
+		cfg.Concurrency = 50
 	}
 	if cfg.TotalRequests == 0 {
-		cfg.TotalRequests = 10000
-	}
-	if cfg.GetPct == 0 && cfg.PutPct == 0 && cfg.DeletePct == 0 {
-		cfg.GetPct = 50
-		cfg.PutPct = 30
-		cfg.DeletePct = 20
+		cfg.TotalRequests = 1000
 	}
 
-	if cfg.GetPct+cfg.PutPct+cfg.DeletePct != 100 {
-		return fmt.Errorf("Get, Put, and Delete percentages must sum to 100")
+	methods := []string{
+		"kvstore.KeyValueStore.Put",
+		"kvstore.KeyValueStore.Get",
+		"kvstore.KeyValueStore.Delete",
 	}
 
-	rand.Seed(time.Now().UnixNano())
-	keyPool = nil
-	for i := 0; i < cfg.KeyCount; i++ {
-		keyPool = append(keyPool, randomBytes(8))
+	for _, method := range methods {
+		log.Printf("Benchmarking %s...\n", method)
+		result, err := runner.Run(
+			method,
+			cfg.ServerAddress,
+			runner.WithProtoFile(cfg.ProtoFile, []string{filepath.Dir(cfg.ProtoFile)}),
+			runner.WithTotalRequests(uint(cfg.TotalRequests)),
+			runner.WithConcurrency(uint(cfg.Concurrency)),
+			runner.WithData(map[string]interface{}{
+				"key":   "some-key",
+				"value": "some-value",
+			}),
+			runner.WithInsecure(true),
+			runner.WithTimeout(10*time.Second),
+		)
+		if err != nil {
+			return fmt.Errorf("benchmark error for %s: %w", method, err)
+		}
+
+		printStats(result)
 	}
 
-	if err := preloadKeys(&cfg); err != nil {
-		return err
-	}
-
-	log.Println("Running benchmark with mixed RPCs...")
-	jobs := make(chan int, cfg.TotalRequests)
-	results := make(chan Result, cfg.TotalRequests)
-
-	startTime := time.Now()
-
-	var wg sync.WaitGroup
-	for i := 0; i < cfg.Concurrency; i++ {
-		wg.Add(1)
-		go worker(&cfg, &wg, jobs, results)
-	}
-
-	for i := 0; i < cfg.TotalRequests; i++ {
-		jobs <- i
-	}
-	close(jobs)
-	wg.Wait()
-	close(results)
-
-	duration := time.Since(startTime)
-
-	all := []Result{}
-	for r := range results {
-		all = append(all, r)
-	}
-
-	ts := time.Now().Format("2006-01-02_15-04-05")
-	name := fmt.Sprintf("benchmark_results_%s", ts)
-	if cfg.Tag != "" {
-		name += "_" + cfg.Tag
-	}
-	name += ".csv"
-	outPath := filepath.Join("results", name)
-	log.Println("Writing CSV output to:", outPath)
-	if err := writeCSV(outPath, cfg, duration, all); err != nil {
-		return fmt.Errorf("failed to write CSV: %w", err)
-	}
-	log.Println("Benchmark complete. CSV output saved to", outPath)
 	return nil
+}
+
+func printStats(r *runner.Report) {
+	log.Printf("Count: %d", r.Count)
+	log.Printf("Average: %v", r.Average)
+	log.Printf("Fastest: %v", r.Fastest)
+	log.Printf("Slowest: %v", r.Slowest)
+	log.Printf("RPS: %.2f", r.Rps)
+	if len(r.ErrorDist) > 0 {
+		log.Printf("Errors: %v", r.ErrorDist)
+	}
+	for _, ld := range r.LatencyDistribution {
+		log.Printf("p%d: %v", ld.Percentage, ld.Latency)
+	}
 }
