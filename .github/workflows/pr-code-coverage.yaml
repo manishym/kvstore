@@ -4,7 +4,9 @@ on:
   pull_request:
     branches:
       - main
-
+permissions:
+  pull-requests: write  # ✅ Required for sticky-pull-request-comment to work
+  
 jobs:
   unit-tests:
     runs-on: ubuntu-latest
