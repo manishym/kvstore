@@ -27,6 +27,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import grpc
 import kvstore_pb2
 import kvstore_pb2_grpc
+import random
+import string
 
 # Configure logging
 logging.basicConfig(
@@ -90,11 +92,25 @@ def create_temp_config(base_config: Dict, temp_dir: Path, port: int) -> Path:
     # Update WAL device path to use temp directory if it's a file path
     if "wal" in config and "device" in config["wal"]:
         if isinstance(config["wal"]["device"], str) and not config["wal"]["device"].startswith("/"):
-            config["wal"]["device"] = str(temp_dir / config["wal"]["device"])
+            # Add a random suffix to WAL file name for uniqueness
+            base_name = config["wal"]["device"]
+            rand_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
+            wal_file = temp_dir / f"{base_name}_{rand_suffix}"
+            config["wal"]["device"] = str(wal_file)
+            print(f"[DEBUG] Using WAL file: {wal_file}")
+        elif isinstance(config["wal"]["device"], dict) and config["wal"]["type"] == "spdk":
+            # For SPDK WAL, add a path to the device config
+            rand_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
+            wal_file = temp_dir / f"spdk_wal_{rand_suffix}.log"
+            config["wal"]["device"]["path"] = str(wal_file)
+            print(f"[DEBUG] Using SPDK WAL file: {wal_file}")
     
     config_path = temp_dir / "runtime_config.json"
     with open(config_path, 'w') as f:
         json.dump(config, f, indent=2)
+    
+    # Debug: print the final configuration
+    print(f"[DEBUG] Final config: {json.dumps(config, indent=2)}")
     
     return config_path
 

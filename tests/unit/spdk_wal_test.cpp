@@ -1,4 +1,5 @@
-#include "wal/spdk_wal.h"
+#include "wal/spdk_wal_simple.h"
+#include <cstdio>
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 #include <vector>
@@ -17,10 +18,9 @@ protected:
 // Test configuration parsing with string device name (backward compatibility)
 TEST_F(SpdkWALTest, ConstructorWithStringDevice) {
   nlohmann::json config = "NVMe0n1";
-  SpdkWAL wal(config);
+  SpdkWALSimple wal(config);
 
-  // Since the current implementation is a stub, we can only test that it
-  // constructs without throwing
+  // The simplified implementation should construct successfully
   EXPECT_TRUE(true); // Constructor should not throw
 }
 
@@ -30,7 +30,7 @@ TEST_F(SpdkWALTest, ConstructorWithJsonObject) {
                            {"wal_segment_size", 134217728}, // 128MB
                            {"batch_size", 64}};
 
-  SpdkWAL wal(config);
+  SpdkWALSimple wal(config);
   EXPECT_TRUE(true); // Constructor should not throw
 }
 
@@ -41,7 +41,7 @@ TEST_F(SpdkWALTest, ConstructorWithPartialConfig) {
       // Missing wal_segment_size and batch_size should use defaults
   };
 
-  SpdkWAL wal(config);
+  SpdkWALSimple wal(config);
   EXPECT_TRUE(true); // Constructor should not throw
 }
 
@@ -49,110 +49,129 @@ TEST_F(SpdkWALTest, ConstructorWithPartialConfig) {
 TEST_F(SpdkWALTest, ConstructorWithEmptyObject) {
   nlohmann::json config = {};
 
-  SpdkWAL wal(config);
+  SpdkWALSimple wal(config);
   EXPECT_TRUE(true); // Constructor should not throw
 }
 
-// Test append method (currently returns false)
-TEST_F(SpdkWALTest, AppendReturnsFalse) {
+// Test append method (should work with simplified implementation)
+TEST_F(SpdkWALTest, AppendWorks) {
   nlohmann::json config = "NVMe0n1";
-  SpdkWAL wal(config);
+  SpdkWALSimple wal(config);
 
   WalEntry entry{WalOpType::PUT, "test_key", "test_value"};
-  EXPECT_FALSE(wal.append(entry));
+  EXPECT_TRUE(wal.append(entry));
 }
 
-// Test appendBatch method (currently returns false)
-TEST_F(SpdkWALTest, AppendBatchReturnsFalse) {
+// Test appendBatch method (should work with simplified implementation)
+TEST_F(SpdkWALTest, AppendBatchWorks) {
   nlohmann::json config = "NVMe0n1";
-  SpdkWAL wal(config);
+  SpdkWALSimple wal(config);
 
   std::vector<WalEntry> entries = {{WalOpType::PUT, "key1", "value1"},
                                    {WalOpType::DELETE, "key2", ""},
                                    {WalOpType::PUT, "key3", "value3"}};
 
-  EXPECT_FALSE(wal.appendBatch(entries));
+  EXPECT_TRUE(wal.appendBatch(entries));
 }
 
-// Test sync method (currently returns false)
-TEST_F(SpdkWALTest, SyncReturnsFalse) {
+// Test sync method (should work with simplified implementation)
+TEST_F(SpdkWALTest, SyncWorks) {
   nlohmann::json config = "NVMe0n1";
-  SpdkWAL wal(config);
+  SpdkWALSimple wal(config);
 
-  EXPECT_FALSE(wal.sync());
+  EXPECT_TRUE(wal.sync());
 }
 
-// Test replay method (currently returns empty vector)
-TEST_F(SpdkWALTest, ReplayReturnsEmpty) {
-  nlohmann::json config = "NVMe0n1";
-  SpdkWAL wal(config);
+// Test replay method (should work with simplified implementation)
+TEST_F(SpdkWALTest, ReplayWorks) {
+  // Clean up any existing files first
+  std::remove("/tmp/spdk_wal_NVMe0n1_replay_test.log");
 
+  nlohmann::json config = "NVMe0n1_replay_test";
+  SpdkWALSimple wal(config);
+
+  // First append some entries
+  WalEntry entry1{WalOpType::PUT, "key1", "value1"};
+  WalEntry entry2{WalOpType::DELETE, "key2", ""};
+  EXPECT_TRUE(wal.append(entry1));
+  EXPECT_TRUE(wal.append(entry2));
+
+  // Then replay them
   auto entries = wal.replay();
-  EXPECT_TRUE(entries.empty());
+  EXPECT_EQ(entries.size(), 2);
+  EXPECT_EQ(entries[0].key, "key1");
+  EXPECT_EQ(entries[0].value, "value1");
+  EXPECT_EQ(entries[1].key, "key2");
+  EXPECT_EQ(entries[1].op_type, WalOpType::DELETE);
 }
 
-// Test rollSegment method (currently returns false)
-TEST_F(SpdkWALTest, RollSegmentReturnsFalse) {
+// Test rollSegment method (should work with simplified implementation)
+TEST_F(SpdkWALTest, RollSegmentWorks) {
   nlohmann::json config = "NVMe0n1";
-  SpdkWAL wal(config);
+  SpdkWALSimple wal(config);
 
-  EXPECT_FALSE(wal.rollSegment());
+  EXPECT_TRUE(wal.rollSegment());
+  EXPECT_EQ(wal.currentSegmentId(), 1);
 }
 
-// Test truncate method (currently returns false)
-TEST_F(SpdkWALTest, TruncateReturnsFalse) {
+// Test truncate method (should work with simplified implementation)
+TEST_F(SpdkWALTest, TruncateWorks) {
   nlohmann::json config = "NVMe0n1";
-  SpdkWAL wal(config);
+  SpdkWALSimple wal(config);
 
-  EXPECT_FALSE(wal.truncate(123));
+  EXPECT_TRUE(wal.truncate(123));
 }
 
-// Test currentSegmentId method (currently returns 0)
-TEST_F(SpdkWALTest, CurrentSegmentIdReturnsZero) {
+// Test currentSegmentId method (should work with simplified implementation)
+TEST_F(SpdkWALTest, CurrentSegmentIdWorks) {
   nlohmann::json config = "NVMe0n1";
-  SpdkWAL wal(config);
+  SpdkWALSimple wal(config);
 
   EXPECT_EQ(wal.currentSegmentId(), 0);
+
+  // After rolling a segment, it should be 1
+  wal.rollSegment();
+  EXPECT_EQ(wal.currentSegmentId(), 1);
 }
 
 // Test with different operation types
 TEST_F(SpdkWALTest, DifferentOperationTypes) {
   nlohmann::json config = "NVMe0n1";
-  SpdkWAL wal(config);
+  SpdkWALSimple wal(config);
 
   WalEntry putEntry{WalOpType::PUT, "put_key", "put_value"};
   WalEntry deleteEntry{WalOpType::DELETE, "delete_key", ""};
 
-  EXPECT_FALSE(wal.append(putEntry));
-  EXPECT_FALSE(wal.append(deleteEntry));
+  EXPECT_TRUE(wal.append(putEntry));
+  EXPECT_TRUE(wal.append(deleteEntry));
 }
 
 // Test with empty key and value
 TEST_F(SpdkWALTest, EmptyKeyAndValue) {
   nlohmann::json config = "NVMe0n1";
-  SpdkWAL wal(config);
+  SpdkWALSimple wal(config);
 
   WalEntry emptyEntry{WalOpType::PUT, "", ""};
-  EXPECT_FALSE(wal.append(emptyEntry));
+  EXPECT_TRUE(wal.append(emptyEntry));
 }
 
 // Test with large values
 TEST_F(SpdkWALTest, LargeValues) {
   nlohmann::json config = "NVMe0n1";
-  SpdkWAL wal(config);
+  SpdkWALSimple wal(config);
 
   std::string largeValue(1000, 'x'); // 1000 character value
   WalEntry largeEntry{WalOpType::PUT, "large_key", largeValue};
-  EXPECT_FALSE(wal.append(largeEntry));
+  EXPECT_TRUE(wal.append(largeEntry));
 }
 
 // Test batch operations with empty batch
 TEST_F(SpdkWALTest, EmptyBatch) {
   nlohmann::json config = "NVMe0n1";
-  SpdkWAL wal(config);
+  SpdkWALSimple wal(config);
 
   std::vector<WalEntry> emptyBatch;
-  EXPECT_FALSE(wal.appendBatch(emptyBatch));
+  EXPECT_TRUE(wal.appendBatch(emptyBatch));
 }
 
 // Test multiple configurations
@@ -167,9 +186,9 @@ TEST_F(SpdkWALTest, MultipleConfigurations) {
        {"batch_size", 16}}};
 
   for (const auto &config : configs) {
-    SpdkWAL wal(config);
+    SpdkWALSimple wal(config);
     WalEntry entry{WalOpType::PUT, "test_key", "test_value"};
-    EXPECT_FALSE(wal.append(entry));
+    EXPECT_TRUE(wal.append(entry));
   }
 }
 
@@ -177,34 +196,33 @@ TEST_F(SpdkWALTest, MultipleConfigurations) {
 TEST_F(SpdkWALTest, ConfigurationEdgeCases) {
   // Test with null JSON
   nlohmann::json nullConfig = nullptr;
-  SpdkWAL wal1(nullConfig);
-  EXPECT_FALSE(wal1.append({WalOpType::PUT, "key", "value"}));
+  SpdkWALSimple wal1(nullConfig);
+  EXPECT_TRUE(wal1.append({WalOpType::PUT, "key", "value"}));
 
   // Test with array JSON (should be treated as invalid)
   nlohmann::json arrayConfig = {"item1", "item2"};
-  SpdkWAL wal2(arrayConfig);
-  EXPECT_FALSE(wal2.append({WalOpType::PUT, "key", "value"}));
+  SpdkWALSimple wal2(arrayConfig);
+  EXPECT_TRUE(wal2.append({WalOpType::PUT, "key", "value"}));
 }
 
 // Test that WAL interface is properly implemented
 TEST_F(SpdkWALTest, ImplementsWALInterface) {
   nlohmann::json config = "NVMe0n1";
-  SpdkWAL wal(config);
+  SpdkWALSimple wal(config);
 
   // Test that we can call all virtual methods
   WalEntry entry{WalOpType::PUT, "key", "value"};
-  wal.append(entry);
+  EXPECT_TRUE(wal.append(entry));
 
   std::vector<WalEntry> batch = {entry};
-  wal.appendBatch(batch);
+  EXPECT_TRUE(wal.appendBatch(batch));
 
-  wal.sync();
-  wal.replay();
-  wal.rollSegment();
-  wal.truncate(0);
-  wal.currentSegmentId();
+  EXPECT_TRUE(wal.sync());
 
-  // If we get here without compilation errors, the interface is properly
-  // implemented
-  EXPECT_TRUE(true);
+  auto entries = wal.replay();
+  EXPECT_FALSE(entries.empty());
+
+  EXPECT_TRUE(wal.rollSegment());
+  EXPECT_TRUE(wal.truncate(0));
+  EXPECT_EQ(wal.currentSegmentId(), 1);
 }

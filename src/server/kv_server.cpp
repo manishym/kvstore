@@ -1,16 +1,18 @@
 #include "server/kv_server.h"
 #include "storage/memtable_factory.h"
-#include <nlohmann/json.hpp>
+#include "wal/wal_factory.h"
 #include <grpcpp/grpcpp.h>
 #include <iostream>
 #include <memory>
+#include <nlohmann/json.hpp>
 #include <string>
 
 void RunServer() {
   std::string server_address("0.0.0.0:50051");
   nlohmann::json cfg = nlohmann::json::object();
   auto memtable = createMemTable(cfg);
-  AsyncKVServer server(server_address, memtable);
+  auto wal = createWAL(cfg);
+  AsyncKVServer server(server_address, memtable, std::move(wal));
   server.Run();
 }
 

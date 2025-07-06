@@ -230,8 +230,9 @@ Example new configuration:
 
 2. **Port Conflicts**
    ```bash
-   # Kill existing server processes
-   pkill -f "server"
+   # Kill existing kvstore server processes (more specific)
+   pgrep -f "tests/unit/build/server" && pkill -f "tests/unit/build/server"
+   pgrep -f "kvstore.*server" && pkill -f "kvstore.*server"
    ```
 
 3. **Permission Issues**

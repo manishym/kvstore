@@ -14,6 +14,26 @@ find_package(nlohmann_json REQUIRED)
 find_package(fmt REQUIRED)
 find_package(CLI11 REQUIRED)
 
+# Find SPDK
+find_library(SPDK_BDEV_LIBRARY NAMES spdk_bdev)
+find_library(SPDK_ENV_LIBRARY NAMES spdk_env_dpdk)
+find_library(SPDK_EVENT_LIBRARY NAMES spdk_event)
+find_library(SPDK_THREAD_LIBRARY NAMES spdk_thread)
+find_library(SPDK_UTIL_LIBRARY NAMES spdk_util)
+find_library(SPDK_JSON_LIBRARY NAMES spdk_json)
+
+# Also find dynamic SPDK libraries
+find_library(SPDK_BDEV_SO NAMES libspdk_bdev.so)
+find_library(SPDK_ENV_SO NAMES libspdk_env_dpdk.so)
+find_library(SPDK_EVENT_SO NAMES libspdk_event.so)
+find_library(SPDK_THREAD_SO NAMES libspdk_thread.so)
+find_library(SPDK_UTIL_SO NAMES libspdk_util.so)
+find_library(SPDK_JSON_SO NAMES libspdk_json.so)
+
+if(NOT SPDK_BDEV_LIBRARY OR NOT SPDK_ENV_LIBRARY OR NOT SPDK_EVENT_LIBRARY)
+    message(FATAL_ERROR "Required SPDK libraries not found")
+endif()
+
 # Use the system protoc instead of any local version
 set(Protobuf_PROTOC_EXECUTABLE "/usr/bin/protoc")
 
@@ -54,6 +74,7 @@ set(COMMON_INCLUDE_DIRS
     ${gRPC_INCLUDE_DIRS}
     ${Boost_INCLUDE_DIRS}
     ${FOLLY_INCLUDE_DIR}
+    /usr/local/include
 )
 
 # Common libraries
@@ -67,6 +88,13 @@ set(COMMON_LIBS
     ${FOLLY_LIBRARY}
     fmt::fmt
     CLI11::CLI11
+    # System libraries
+    uuid
+    numa
+    dl
+    rt
+    pthread
+    z
 )
 
 # Add server executable
@@ -143,6 +171,20 @@ target_include_directories(kvstore_tests PRIVATE
 
 # Add test to CTest
 add_test(NAME kvstore_tests COMMAND kvstore_tests)
+
+# Add SPDK WAL test executable
+add_executable(test_spdk_wal
+    src/test_spdk_wal.cpp
+    src/wal/wal_serializer.cpp
+    src/utils/file_buffer_writer.cpp
+    ${PROTO_SRCS}
+    ${PROTO_HDRS}
+    ${GRPC_SRCS}
+    ${GRPC_HDRS}
+)
+
+target_link_libraries(test_spdk_wal ${COMMON_LIBS} dl z snappy lz4 zstd pthread glog gflags iberty)
+target_include_directories(test_spdk_wal PRIVATE ${COMMON_INCLUDE_DIRS} ${CMAKE_CURRENT_BINARY_DIR})
 
 # Add coverage flags if enabled
 if(CMAKE_BUILD_TYPE STREQUAL "Coverage")

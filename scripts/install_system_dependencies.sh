@@ -6,6 +6,8 @@ apt-get update
 
 echo "📦 Installing system dependencies..."
 DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+  autoconf \
+  automake \
   binutils-dev \
   build-essential \
   ca-certificates \
@@ -43,9 +45,11 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
   libprotobuf-dev \
   libsnappy-dev \
   libssl-dev \
+  libtool \
   libunwind-dev \
   libzstd-dev \
   meson \
+  nasm\
   ninja-build \
   nlohmann-json3-dev \
   pkg-config \
@@ -78,9 +82,22 @@ make -C _build -j$(nproc)
 make -C _build install
 cd /
 rm -rf /tmp/folly
+echo "✅ FastFloat and Folly installed successfully."
 
 
 echo "📦 Installing SPDK..."
+
+git clone https://github.com/intel/isa-l /tmp/isa-l
+cd /tmp/isa-l
+./autogen.sh
+./configure
+make
+make install
+cd /
+
+rm -rf /tmp/isa-l
+
+
 
 # Clone and build SPDK
 git clone https://github.com/spdk/spdk.git /tmp/spdk
@@ -97,4 +114,3 @@ rm -rf /tmp/spdk
 
 echo "✅ SPDK installed."
 
-echo "✅ FastFloat and Folly installed successfully."

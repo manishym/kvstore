@@ -50,8 +50,15 @@ log_error() {
 # Cleanup function
 cleanup() {
     log_info "Cleaning up..."
-    # Kill only our kvstore server processes (more specific)
-    pkill -f "tests/unit/build/server" || pkill -f "kvstore.*server" || true
+    # Kill only our specific kvstore server processes using more specific patterns
+    # Look for processes with our specific server binary path
+    if pgrep -f "tests/unit/build/server" > /dev/null; then
+        pkill -f "tests/unit/build/server" || true
+    fi
+    # Look for processes with our specific kvstore server pattern
+    if pgrep -f "kvstore.*server" > /dev/null; then
+        pkill -f "kvstore.*server" || true
+    fi
     # Remove temporary files
     find /tmp -name "kvstore_*" -type f -delete 2>/dev/null || true
 }

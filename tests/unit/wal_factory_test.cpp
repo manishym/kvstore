@@ -1,3 +1,4 @@
+#include "wal/spdk_wal_simple.h"
 #include "wal/wal_factory.h"
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
@@ -19,7 +20,7 @@ TEST(WALFactoryTest, SpdkCreatesSpdkWAL) {
   nlohmann::json cfg;
   cfg["wal"] = {{"type", "spdk"}, {"device", "NVMe0n1"}};
   auto wal = createWAL(cfg);
-  EXPECT_TRUE(dynamic_cast<SpdkWAL *>(wal.get()) != nullptr);
+  EXPECT_TRUE(dynamic_cast<SpdkWALSimple *>(wal.get()) != nullptr);
 }
 
 TEST(WALFactoryTest, SpdkWithComplexConfig) {
@@ -30,14 +31,14 @@ TEST(WALFactoryTest, SpdkWithComplexConfig) {
                   {"wal_segment_size", 134217728},
                   {"batch_size", 64}}}};
   auto wal = createWAL(cfg);
-  EXPECT_TRUE(dynamic_cast<SpdkWAL *>(wal.get()) != nullptr);
+  EXPECT_TRUE(dynamic_cast<SpdkWALSimple *>(wal.get()) != nullptr);
 }
 
 TEST(WALFactoryTest, SpdkWithDefaultConfig) {
   nlohmann::json cfg;
   cfg["wal"] = {{"type", "spdk"}};
   auto wal = createWAL(cfg);
-  EXPECT_TRUE(dynamic_cast<SpdkWAL *>(wal.get()) != nullptr);
+  EXPECT_TRUE(dynamic_cast<SpdkWALSimple *>(wal.get()) != nullptr);
 }
 
 TEST(WALFactoryTest, InvalidTypeCreatesBlockDevice) {
