@@ -1,6 +1,6 @@
-#include "file_buffer_writer.h"
-#include "wal_entry_serializer.h"
-#include "wal_serializer.h"
+#include "utils/file_buffer_writer.h"
+#include "wal/wal_entry_serializer.h"
+#include "wal/wal_serializer.h"
 #include <gtest/gtest.h>
 
 TEST(WalSerializerTest, SerializeSuccess) {

@@ -1,4 +1,4 @@
-#include "spdk_wal.h"
+#include "wal/spdk_wal.h"
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 #include <vector>

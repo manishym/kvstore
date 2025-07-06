@@ -71,15 +71,15 @@ set(COMMON_LIBS
 
 # Add server executable
 add_executable(server
-    src/server.cpp
-    src/server_impl.h
-    src/server_main.cpp
+    src/server/kv_server.cpp
+    src/server/kv_server.h
+    src/main.cpp
     src/storage/memtable_factory.cpp
     src/storage/stdmap_memtable.cpp
     src/storage/boostmap_memtable.cpp
     src/storage/skiplist_memtable.cpp
-    src/wal_serializer.cpp
-    src/file_buffer_writer.cpp
+    src/wal/wal_serializer.cpp
+    src/utils/file_buffer_writer.cpp
     ${PROTO_SRCS}
     ${PROTO_HDRS}
     ${GRPC_SRCS}
@@ -93,9 +93,9 @@ target_include_directories(server PRIVATE ${COMMON_INCLUDE_DIRS} ${CMAKE_CURRENT
 
 # Add client executable
 add_executable(client
-    src/client.cpp
-    src/wal_serializer.cpp
-    src/file_buffer_writer.cpp
+    src/client/client.cpp
+    src/wal/wal_serializer.cpp
+    src/utils/file_buffer_writer.cpp
     ${PROTO_SRCS}
     ${PROTO_HDRS}
     ${GRPC_SRCS}
@@ -124,10 +124,10 @@ add_executable(kvstore_tests
     src/storage/stdmap_memtable.cpp
     src/storage/boostmap_memtable.cpp
     src/storage/skiplist_memtable.cpp
-    src/server.cpp
-    src/wal_serializer.cpp
-    src/file_buffer_writer.cpp
-    src/spdk_buffer_writer.cpp
+    src/server/kv_server.cpp
+    src/wal/wal_serializer.cpp
+    src/utils/file_buffer_writer.cpp
+    src/utils/spdk_buffer_writer.cpp
     ${PROTO_SRCS}
     ${PROTO_HDRS}
     ${GRPC_SRCS}

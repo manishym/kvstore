@@ -1,4 +1,4 @@
-#include "wal_serializer.h"
+#include "wal/wal_serializer.h"
 #include <cstring>
 
 bool WalSerializer::serialize(const WalEntry& entry, IWritableBuffer& out) {

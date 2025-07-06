@@ -27,7 +27,7 @@ cp ../../../src/config/runtime_config.json runtime_config.json
 if command -v lcov &> /dev/null; then
     # Generate coverage report
     lcov --capture --directory . --output-file coverage.info --ignore-errors mismatch
-    lcov --remove coverage.info '/usr/*' '*/tests/unit/build/*' '/workspace/kvstore/src/server.cpp' '/workspace/kvstore/src/server_impl.h' --output-file coverage.info --ignore-errors unused
+    lcov --remove coverage.info '/usr/*' '*/tests/unit/build/*' '/workspace/kvstore/src/server/kv_server.cpp' '/workspace/kvstore/src/server/kv_server.h' --output-file coverage.info --ignore-errors unused
     lcov --list coverage.info
 
     # Check if genhtml is available

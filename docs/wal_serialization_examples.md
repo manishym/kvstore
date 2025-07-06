@@ -1,9 +1,9 @@
 # WAL Serializer Usage Examples
 
 ```cpp
-#include "file_buffer_writer.h"
-#include "spdk_buffer_writer.h"
-#include "wal_serializer.h"
+#include "utils/file_buffer_writer.h"
+#include "utils/spdk_buffer_writer.h"
+#include "wal/wal_serializer.h"
 #include <spdk/env.h>
 
 void exampleFile(int fd) {

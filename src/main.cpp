@@ -1,5 +1,5 @@
-#include "server_impl.h"
-#include "wal_factory.h"
+#include "server/kv_server.h"
+#include "wal/wal_factory.h"
 #include "storage/memtable_factory.h"
 #include <fstream>
 #include <nlohmann/json.hpp>

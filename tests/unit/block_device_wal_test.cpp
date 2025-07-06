@@ -1,4 +1,4 @@
-#include "block_device_wal.h"
+#include "wal/block_device_wal.h"
 #include <gtest/gtest.h>
 #include <cstdio>
 #include <vector>
