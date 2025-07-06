@@ -1,0 +1,12 @@
+{
+    "map_type": "skiplist",
+    "map_options": {
+        "skiplist": {
+            "max_level": 16,
+            "probability": 0.25
+        }
+    },
+    "wal": {
+        "type": "passthrough"
+    }
+}

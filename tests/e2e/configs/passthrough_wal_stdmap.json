@@ -1,0 +1,11 @@
+{
+    "map_type": "std_map",
+    "map_options": {
+        "std_map": {
+            "initial_size": 1000
+        }
+    },
+    "wal": {
+        "type": "passthrough"
+    }
+}

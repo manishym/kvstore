@@ -1,0 +1,16 @@
+{
+    "map_type": "std_map",
+    "map_options": {
+        "std_map": {
+            "initial_size": 1000
+        }
+    },
+    "wal": {
+        "type": "spdk",
+        "device": {
+            "spdk_bdev": "NVMe0n1",
+            "wal_segment_size": 67108864,
+            "batch_size": 32
+        }
+    }
+}
