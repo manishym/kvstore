@@ -1,6 +1,5 @@
 #pragma once
 #include "i_writable_buffer.h"
-#include <spdk/env.h>
 
 class SPDKBufferWriter : public IWritableBuffer {
 public:

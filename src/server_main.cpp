@@ -1,5 +1,6 @@
 #include "server_impl.h"
 #include "wal_factory.h"
+#include "storage/memtable_factory.h"
 #include <fstream>
 #include <nlohmann/json.hpp>
 #include <cstdlib>
@@ -23,8 +24,9 @@ int main(int argc, char **argv) {
 
   std::string address = config.value("address", "0.0.0.0:50051");
   std::unique_ptr<WAL> wal = createWAL(config);
+  auto memtable = createMemTable(config);
 
-  AsyncKVServer server(address, std::move(wal));
+  AsyncKVServer server(address, memtable, std::move(wal));
   server.Run();
   return 0;
 }

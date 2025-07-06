@@ -2,7 +2,7 @@
 #define SERVER_IMPL_H
 
 #include <atomic>
-#include <folly/ConcurrentSkipList.h>
+#include "storage/memtable.h"
 #include <grpcpp/grpcpp.h>
 #include <iostream>
 #include <kvstore.grpc.pb.h>
@@ -26,36 +26,22 @@ using kvstore::KeyValueStore;
 using kvstore::PutRequest;
 using kvstore::PutResponse;
 
-struct KeyValueComparator {
-  bool operator()(const std::pair<std::string, std::string> &a,
-                  const std::pair<std::string, std::string> &b) const {
-    return a.first < b.first;
-  }
-};
-
 class AsyncKVServer {
 public:
   using KeyValue = std::pair<std::string, std::string>;
-  using SkipList = folly::ConcurrentSkipList<KeyValue, KeyValueComparator>;
-  using SkipListPtr = std::shared_ptr<SkipList>;
-  using Accessor = SkipList::Accessor;
+  using MemTablePtr = std::shared_ptr<MemTable>;
 
-  AsyncKVServer(const std::string &address, std::unique_ptr<WAL> wal = nullptr)
-      : address_(address), store_(SkipList::createInstance()),
+  AsyncKVServer(const std::string &address, MemTablePtr memtable,
+                std::unique_ptr<WAL> wal = nullptr)
+      : address_(address), store_(std::move(memtable)),
         wal_(std::move(wal)) {
     if (wal_) {
       auto entries = wal_->replay();
       for (const auto &e : entries) {
-        Accessor accessor(store_);
         if (e.op_type == WalOpType::PUT) {
-          auto kv = std::make_pair(e.key, e.value);
-          auto it = accessor.find(kv);
-          if (it != accessor.end())
-            accessor.erase(kv);
-          accessor.insert(kv);
+          store_->put(e.key, e.value);
         } else if (e.op_type == WalOpType::DELETE) {
-          auto search = std::make_pair(e.key, "");
-          accessor.erase(search);
+          store_->del(e.key);
         }
       }
     }
@@ -91,7 +77,7 @@ private:
   class PutCallData : public CallDataBase {
   public:
     PutCallData(KeyValueStore::AsyncService *service, ServerCompletionQueue *cq,
-                SkipListPtr &store, WAL *wal)
+                MemTablePtr &store, WAL *wal)
         : service_(service), cq_(cq), responder_(&ctx_), store_(store), wal_(wal),
           status_(CREATE) {
       Proceed(true);
@@ -106,12 +92,7 @@ private:
         new PutCallData(service_, cq_, store_, wal_);
         // Process request
         {
-          AsyncKVServer::Accessor accessor(store_);
-          auto kv = std::make_pair(request_.key(), request_.value());
-          auto it = accessor.find(kv);
-          if (it != accessor.end())
-            accessor.erase(kv);
-          accessor.insert(kv);
+          store_->put(request_.key(), request_.value());
         }
         if (wal_)
           wal_->append({WalOpType::PUT, request_.key(), request_.value()});
@@ -133,7 +114,7 @@ private:
     PutRequest request_;
     PutResponse response_;
     ServerAsyncResponseWriter<PutResponse> responder_;
-    SkipListPtr &store_;
+    MemTablePtr &store_;
     WAL *wal_;
   };
 
@@ -141,7 +122,7 @@ private:
   class GetCallData : public CallDataBase {
   public:
     GetCallData(KeyValueStore::AsyncService *service, ServerCompletionQueue *cq,
-                SkipListPtr &store)
+                MemTablePtr &store)
         : service_(service), cq_(cq), responder_(&ctx_), store_(store),
           status_(CREATE) {
       Proceed(true);
@@ -155,11 +136,9 @@ private:
         new GetCallData(service_, cq_, store_);
         // Process
         {
-          AsyncKVServer::Accessor accessor(store_);
-          auto search = std::make_pair(request_.key(), "");
-          auto it = accessor.find(search);
-          if (it != accessor.end()) {
-            response_.set_value(it->second);
+          auto result = store_->get(request_.key());
+          if (result) {
+            response_.set_value(*result);
             response_.set_found(true);
           } else {
             response_.set_found(false);
@@ -181,14 +160,14 @@ private:
     GetRequest request_;
     GetResponse response_;
     ServerAsyncResponseWriter<GetResponse> responder_;
-    SkipListPtr &store_;
+    MemTablePtr &store_;
   };
 
   // DELETE handler
   class DeleteCallData : public CallDataBase {
   public:
     DeleteCallData(KeyValueStore::AsyncService *service,
-                   ServerCompletionQueue *cq, SkipListPtr &store, WAL *wal)
+                   ServerCompletionQueue *cq, MemTablePtr &store, WAL *wal)
         : service_(service), cq_(cq), responder_(&ctx_), store_(store), wal_(wal),
           status_(CREATE) {
       Proceed(true);
@@ -201,11 +180,9 @@ private:
       } else if (status_ == PROCESS) {
         new DeleteCallData(service_, cq_, store_, wal_);
         {
-          AsyncKVServer::Accessor accessor(store_);
-          auto search = std::make_pair(request_.key(), "");
-          auto it = accessor.find(search);
-          if (it != accessor.end()) {
-            accessor.erase(search);
+          auto result = store_->get(request_.key());
+          if (result) {
+            store_->del(request_.key());
             if (wal_)
               wal_->append({WalOpType::DELETE, request_.key(), ""});
             response_.set_success(true);
@@ -229,7 +206,7 @@ private:
     DeleteRequest request_;
     DeleteResponse response_;
     ServerAsyncResponseWriter<DeleteResponse> responder_;
-    SkipListPtr &store_;
+    MemTablePtr &store_;
     WAL *wal_;
   };
 
@@ -247,7 +224,7 @@ private:
 
   // Members
   std::string address_;
-  SkipListPtr store_;
+  MemTablePtr store_;
   KeyValueStore::AsyncService service_;
   std::vector<std::unique_ptr<ServerCompletionQueue>> cqs_;
   std::vector<std::thread> threads_;
