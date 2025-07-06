@@ -74,6 +74,10 @@ add_executable(server
     src/server.cpp
     src/server_impl.h
     src/server_main.cpp
+    src/storage/memtable_factory.cpp
+    src/storage/stdmap_memtable.cpp
+    src/storage/boostmap_memtable.cpp
+    src/storage/skiplist_memtable.cpp
     src/wal_serializer.cpp
     src/file_buffer_writer.cpp
     ${PROTO_SRCS}
@@ -107,6 +111,7 @@ enable_testing()
 # Add test executables
 add_executable(kvstore_tests
     tests/unit/server_test.cpp
+    tests/unit/memtable_test.cpp
     tests/unit/map_test.cpp
     tests/unit/block_device_wal_test.cpp
     tests/unit/spdk_wal_test.cpp
@@ -115,6 +120,10 @@ add_executable(kvstore_tests
     tests/unit/passthrough_wal_test.cpp
     tests/unit/file_buffer_writer_test.cpp
     tests/unit/spdk_buffer_writer_test.cpp
+    src/storage/memtable_factory.cpp
+    src/storage/stdmap_memtable.cpp
+    src/storage/boostmap_memtable.cpp
+    src/storage/skiplist_memtable.cpp
     src/server.cpp
     src/wal_serializer.cpp
     src/file_buffer_writer.cpp

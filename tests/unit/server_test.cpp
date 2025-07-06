@@ -1,4 +1,6 @@
 #include "server_impl.h"
+#include "storage/memtable_factory.h"
+#include <nlohmann/json.hpp>
 #include <chrono>
 #include <grpcpp/grpcpp.h>
 #include <gtest/gtest.h>
@@ -24,8 +26,10 @@ protected:
   static void SetUpTestSuite() {
     // Start server
     server_thread_ = std::thread([]() {
-      async_server_ = std::make_unique<AsyncKVServer>("0.0.0.0:50051");
-      async_server_->Run(4, 2); // 4 CQs, 2 threads each (adjust for your CPU)
+      nlohmann::json cfg = nlohmann::json::object();
+      auto memtable = createMemTable(cfg);
+      async_server_ = std::make_unique<AsyncKVServer>("0.0.0.0:50051", memtable);
+      async_server_->Run(4, 2); // 4 CQs, 2 threads each
     });
     // Wait for server to start (could add a health check here)
     std::this_thread::sleep_for(std::chrono::seconds(1));
