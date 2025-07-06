@@ -1,4 +1,4 @@
-#include "passthrough_wal.h"
+#include "wal/passthrough_wal.h"
 #include <gtest/gtest.h>
 #include <vector>
 

@@ -1,6 +1,6 @@
 #pragma once
-#include "wal.h"
-#include "i_writable_buffer.h"
+#include "wal/interface.h"
+#include "utils/i_writable_buffer.h"
 #include <vector>
 
 class WalSerializer {

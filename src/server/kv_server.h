@@ -6,7 +6,7 @@
 #include <grpcpp/grpcpp.h>
 #include <iostream>
 #include <kvstore.grpc.pb.h>
-#include "wal.h"
+#include "wal/interface.h"
 #include <memory>
 #include <string>
 #include <thread>

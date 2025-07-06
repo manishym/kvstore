@@ -1,4 +1,4 @@
-#include "wal_factory.h"
+#include "wal/wal_factory.h"
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 

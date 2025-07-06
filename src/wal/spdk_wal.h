@@ -1,5 +1,5 @@
 #pragma once
-#include "wal.h"
+#include "wal/interface.h"
 #include <cstdint>
 #include <nlohmann/json.hpp>
 #include <string>

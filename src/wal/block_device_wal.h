@@ -1,6 +1,6 @@
 #pragma once
-#include "wal.h"
-#include "wal_entry_serializer.h"
+#include "wal/interface.h"
+#include "wal/wal_entry_serializer.h"
 #include <cstring>
 #include <fcntl.h>
 #include <mutex>

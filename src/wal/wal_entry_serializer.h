@@ -1,6 +1,6 @@
 #pragma once
 
-#include "wal.h"
+#include "wal/interface.h"
 #include <cstddef>
 #include <cstdint>
 #include <string>

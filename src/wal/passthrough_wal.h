@@ -1,5 +1,5 @@
 #pragma once
-#include "wal.h"
+#include "wal/interface.h"
 #include <vector>
 
 class PassThroughWAL : public WAL {
