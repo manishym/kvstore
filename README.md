@@ -1,6 +1,6 @@
 # SPDK Key-Value Store
 ![Unit Tests](https://github.com/manishym/kvstore/actions/workflows/c-cpp.yml/badge.svg)
-![Code Coverage](https://github.com/manishym/kvstore/actions/workflows/pr-code-coverage.yml/badge.svg)
+![Code Coverage](https://github.com/manishym/kvstore/actions/workflows/pr-code-coverage.yaml/badge.svg)
 
 This project implements a key-value store using SPDK and gRPC. It provides a simple API for storing, retrieving, and deleting key-value pairs.
 
