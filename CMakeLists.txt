@@ -9,7 +9,9 @@ find_package(Protobuf REQUIRED)
 find_package(gRPC REQUIRED)
 find_package(GTest REQUIRED)
 find_package(Threads REQUIRED)
-find_package(Boost REQUIRED COMPONENTS container)
+find_package(Boost REQUIRED COMPONENTS container program_options)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(SPDK REQUIRED spdk_bdev)
 find_package(nlohmann_json REQUIRED)
 find_package(fmt REQUIRED)
 find_package(CLI11 REQUIRED)
@@ -54,6 +56,7 @@ set(COMMON_INCLUDE_DIRS
     ${gRPC_INCLUDE_DIRS}
     ${Boost_INCLUDE_DIRS}
     ${FOLLY_INCLUDE_DIR}
+    ${SPDK_INCLUDE_DIRS}
 )
 
 # Common libraries
@@ -62,9 +65,12 @@ set(COMMON_LIBS
     gRPC::grpc++_reflection
     protobuf::libprotobuf
     Threads::Threads
-    Boost::container
-    nlohmann_json::nlohmann_json
     ${FOLLY_LIBRARY}
+    Boost::container
+    ${SPDK_LIBRARIES}
+    Boost::program_options
+    nlohmann_json::nlohmann_json
+    double-conversion
     fmt::fmt
     CLI11::CLI11
 )
@@ -78,6 +84,7 @@ add_executable(server
     src/storage/stdmap_memtable.cpp
     src/storage/boostmap_memtable.cpp
     src/storage/skiplist_memtable.cpp
+    src/wal/spdk_wal.cpp
     src/wal/wal_serializer.cpp
     src/utils/file_buffer_writer.cpp
     ${PROTO_SRCS}
@@ -94,6 +101,7 @@ target_include_directories(server PRIVATE ${COMMON_INCLUDE_DIRS} ${CMAKE_CURRENT
 # Add client executable
 add_executable(client
     src/client/client.cpp
+    src/wal/spdk_wal.cpp
     src/wal/wal_serializer.cpp
     src/utils/file_buffer_writer.cpp
     ${PROTO_SRCS}
@@ -120,6 +128,7 @@ add_executable(kvstore_tests
     tests/unit/passthrough_wal_test.cpp
     tests/unit/file_buffer_writer_test.cpp
     tests/unit/spdk_buffer_writer_test.cpp
+    src/wal/spdk_wal.cpp
     src/storage/memtable_factory.cpp
     src/storage/stdmap_memtable.cpp
     src/storage/boostmap_memtable.cpp
