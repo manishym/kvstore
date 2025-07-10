@@ -34,6 +34,7 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
   libgrpc-dev \
   libgtest-dev \
   libiberty-dev \
+  libisal-dev \
   libjemalloc-dev \
   libjson-c-dev \
   liblz4-dev \
