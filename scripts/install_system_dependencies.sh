@@ -89,7 +89,7 @@ cd /tmp/spdk
 git submodule update --init
 
 # Use minimal build to save time
-./configure --prefix=/usr/local --with-shared --without-nvme-cuse
+./configure
 make -j$(nproc)
 make install
 
