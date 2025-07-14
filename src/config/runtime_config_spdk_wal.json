@@ -1,10 +1,36 @@
 {
-    "wal": {
-        "type": "spdk",
-        "device": {
-            "spdk_bdev": "NVMe0n1",
-            "wal_segment_size": 67108864,
-            "batch_size": 32
+    "subsystems": [
+        {
+            "subsystem": "bdev",
+            "config": [
+                {
+                    "method": "bdev_aio_create",
+                    "params": {
+                        "filename": "/tmp/spdk_disk.img",
+                        "name": "AioDisk0",
+                        "block_size": 512
+                    }
+                }
+            ]
+        },
+        {
+            "subsystem": "kvstore",
+            "config": [
+                {
+                    "method": "kvstore_config",
+                    "params": {
+                        "wal": {
+                            "type": "spdk",
+                            "device": {
+                                "spdk_bdev": "AioDisk0",
+                                "wal_segment_size": 67108864,
+                                "batch_size": 32
+                            }
+                        },
+                        "address": "0.0.0.0:50051"
+                    }
+                }
+            ]
         }
-    }
+    ]
 }

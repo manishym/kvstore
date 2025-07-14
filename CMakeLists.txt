@@ -55,7 +55,7 @@ set(COMMON_INCLUDE_DIRS
 )
 
 # Get static linker flags for SPDK + DPDK
-execute_process(COMMAND pkg-config --static --libs spdk_bdev spdk_env_dpdk OUTPUT_VARIABLE SPDK_STATIC_LIBS OUTPUT_STRIP_TRAILING_WHITESPACE)
+execute_process(COMMAND pkg-config --static --libs spdk_bdev spdk_event spdk_env_dpdk OUTPUT_VARIABLE SPDK_STATIC_LIBS OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 # Common libraries
 set(COMMON_LIBS
