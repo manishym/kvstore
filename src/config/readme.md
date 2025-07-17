@@ -8,20 +8,11 @@ String specifying the address and port for the gRPC server. If omitted the serve
 ## wal
 Configuration for the Write Ahead Log (WAL). The `wal` object may contain the following fields:
 
-- `type` – WAL implementation. Supported values are `block` and `spdk`. Unknown or missing values fall back to the block device WAL.
+- `type` – WAL implementation. Supported value is `block`. Unknown or missing values fall back to the block device WAL.
 - `device` – configuration for the selected WAL type.
 
 ### Block device WAL
 When `type` is `block`, `device` can be either a string path or an object with a `path` entry. The default path is `kvstore_block.wal`.
-
-### SPDK WAL
-When `type` is `spdk`, `device` may be a string naming the SPDK bdev or an object with additional options:
-
-- `spdk_bdev` – name of the SPDK block device. Default `"NVMe0n1"`.
-- `wal_segment_size` – size of each WAL segment in bytes. Default `67108864` (64 MB).
-- `batch_size` – number of entries per batch. Default `32`.
-
-If the `device` field is omitted, default values are used.
 
 ## map_type and map_options
 These settings are used by `MapFactory` for unit tests. `map_type` selects the in-memory map implementation and options are provided under `map_options`:

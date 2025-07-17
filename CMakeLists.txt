@@ -88,7 +88,7 @@ add_executable(server
 
 add_compile_options(-fno-omit-frame-pointer -pthread)
 
-target_link_libraries(server ${COMMON_LIBS} dl z snappy lz4 zstd pthread glog gflags iberty)
+target_link_libraries(server ${COMMON_LIBS} dl z snappy lz4 zstd pthread glog gflags iberty boost_program_options double-conversion)
 target_include_directories(server PRIVATE ${COMMON_INCLUDE_DIRS} ${CMAKE_CURRENT_BINARY_DIR})
 
 # Add client executable
@@ -102,7 +102,7 @@ add_executable(client
     ${GRPC_HDRS}
 )
 
-target_link_libraries(client ${COMMON_LIBS} dl z snappy lz4 zstd pthread glog gflags iberty)
+target_link_libraries(client ${COMMON_LIBS} dl z snappy lz4 zstd pthread glog gflags iberty boost_program_options double-conversion)
 target_include_directories(client PRIVATE ${COMMON_INCLUDE_DIRS} ${CMAKE_CURRENT_BINARY_DIR})
 
 # Test configuration
@@ -114,12 +114,12 @@ add_executable(kvstore_tests
     tests/unit/memtable_test.cpp
     tests/unit/map_test.cpp
     tests/unit/block_device_wal_test.cpp
-    tests/unit/spdk_wal_test.cpp
+
     tests/unit/wal_factory_test.cpp
     tests/unit/wal_serializer_test.cpp
     tests/unit/passthrough_wal_test.cpp
     tests/unit/file_buffer_writer_test.cpp
-    tests/unit/spdk_buffer_writer_test.cpp
+
     src/storage/memtable_factory.cpp
     src/storage/stdmap_memtable.cpp
     src/storage/boostmap_memtable.cpp
@@ -127,14 +127,14 @@ add_executable(kvstore_tests
     src/server/kv_server.cpp
     src/wal/wal_serializer.cpp
     src/utils/file_buffer_writer.cpp
-    src/utils/spdk_buffer_writer.cpp
+
     ${PROTO_SRCS}
     ${PROTO_HDRS}
     ${GRPC_SRCS}
     ${GRPC_HDRS}
 )
 
-target_link_libraries(kvstore_tests ${COMMON_LIBS} GTest::GTest GTest::Main glog gflags iberty)
+target_link_libraries(kvstore_tests ${COMMON_LIBS} GTest::GTest GTest::Main glog gflags iberty boost_program_options double-conversion)
 target_include_directories(kvstore_tests PRIVATE
     ${COMMON_INCLUDE_DIRS}
     ${GTEST_INCLUDE_DIRS}

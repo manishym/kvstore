@@ -76,4 +76,5 @@ output/
 spdk/
 grpc/
 lib/
+tests/e2e/results/
 *.wal

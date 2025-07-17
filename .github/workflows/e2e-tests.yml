@@ -1,9 +1,5 @@
 name: E2E Tests
 
-# Note: SPDK WAL fault injection tests are temporarily disabled due to known recovery issues
-# SPDK WAL works correctly for normal operations, stress testing, and concurrent access
-# The fault injection recovery issue will be addressed in a future update
-
 on:
   push:
     branches: [ main ]
@@ -17,13 +13,9 @@ jobs:
     
     strategy:
       matrix:
-        config: [spdk_wal_skiplist, spdk_wal_stdmap, spdk_wal_boostmap, 
-                block_wal_skiplist, block_wal_stdmap, block_wal_boostmap,
+        config: [block_wal_skiplist, block_wal_stdmap, block_wal_boostmap,
                 passthrough_wal_skiplist, passthrough_wal_stdmap, passthrough_wal_boostmap]
         test_type: [basic_functionality, stress_and_latency, concurrent_clients]
-        # Note: fault_injection tests disabled for SPDK WAL due to known issue
-        # SPDK WAL works for normal operations but has fault injection recovery issues
-        # This will be fixed in a future update
     
     steps:
     - name: Checkout code
@@ -66,8 +58,8 @@ jobs:
         python3 -m venv venv
         source venv/bin/activate
         pip install -r requirements.txt
-        # Run all tests except fault injection for SPDK WAL (known issue)
-        python -m pytest test_matrix.py -v --tb=short --junitxml=test-results.xml -k "not test_fault_injection or not spdk_wal"
+        # Run all tests
+        python -m pytest test_matrix.py -v --tb=short --junitxml=test-results.xml
         
     - name: Upload test results
       if: always()

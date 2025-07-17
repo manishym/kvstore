@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# E2E Test Runner for SPDK Key-Value Store
+# E2E Test Runner for Key-Value Store
 # This script runs comprehensive end-to-end tests across all configurations
 
 set -euo pipefail

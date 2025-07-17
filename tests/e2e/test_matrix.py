@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Comprehensive E2E test matrix for SPDK Key-Value Store.
+Comprehensive E2E test matrix for Key-Value Store.
 
 This module provides:
 1. Dynamic configuration discovery from configs/ directory
