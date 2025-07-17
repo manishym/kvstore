@@ -1,12 +1,12 @@
 #ifndef SERVER_IMPL_H
 #define SERVER_IMPL_H
 
-#include <atomic>
 #include "storage/memtable.h"
+#include "wal/interface.h"
+#include <atomic>
 #include <grpcpp/grpcpp.h>
 #include <iostream>
 #include <kvstore.grpc.pb.h>
-#include "wal/interface.h"
 #include <memory>
 #include <string>
 #include <thread>
@@ -33,8 +33,7 @@ public:
 
   AsyncKVServer(const std::string &address, MemTablePtr memtable,
                 std::unique_ptr<WAL> wal = nullptr)
-      : address_(address), store_(std::move(memtable)),
-        wal_(std::move(wal)) {
+      : address_(address), store_(std::move(memtable)), wal_(std::move(wal)) {
     if (wal_) {
       auto entries = wal_->replay();
       for (const auto &e : entries) {
@@ -78,8 +77,8 @@ private:
   public:
     PutCallData(KeyValueStore::AsyncService *service, ServerCompletionQueue *cq,
                 MemTablePtr &store, WAL *wal)
-        : service_(service), cq_(cq), responder_(&ctx_), store_(store), wal_(wal),
-          status_(CREATE) {
+        : service_(service), cq_(cq), responder_(&ctx_), store_(store),
+          wal_(wal), status_(CREATE) {
       Proceed(true);
     }
 
@@ -94,8 +93,10 @@ private:
         {
           store_->put(request_.key(), request_.value());
         }
-        if (wal_)
+        if (wal_) {
           wal_->append({WalOpType::PUT, request_.key(), request_.value()});
+          wal_->sync(); // Ensure data is persisted to disk
+        }
         response_.set_success(true);
         status_ = FINISH;
         responder_.Finish(response_, Status::OK, this);
@@ -168,8 +169,8 @@ private:
   public:
     DeleteCallData(KeyValueStore::AsyncService *service,
                    ServerCompletionQueue *cq, MemTablePtr &store, WAL *wal)
-        : service_(service), cq_(cq), responder_(&ctx_), store_(store), wal_(wal),
-          status_(CREATE) {
+        : service_(service), cq_(cq), responder_(&ctx_), store_(store),
+          wal_(wal), status_(CREATE) {
       Proceed(true);
     }
 
@@ -183,8 +184,10 @@ private:
           auto result = store_->get(request_.key());
           if (result) {
             store_->del(request_.key());
-            if (wal_)
+            if (wal_) {
               wal_->append({WalOpType::DELETE, request_.key(), ""});
+              wal_->sync(); // Ensure data is persisted to disk
+            }
             response_.set_success(true);
           } else {
             response_.set_success(false);
