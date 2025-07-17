@@ -34,6 +34,7 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
   libgrpc-dev \
   libgtest-dev \
   libiberty-dev \
+  libisal-dev \
   libjemalloc-dev \
   libjson-c-dev \
   liblz4-dev \
@@ -88,7 +89,7 @@ cd /tmp/spdk
 git submodule update --init
 
 # Use minimal build to save time
-./configure --prefix=/usr/local --with-shared --without-nvme-cuse
+./configure
 make -j$(nproc)
 make install
 

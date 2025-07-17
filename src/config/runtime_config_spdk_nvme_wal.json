@@ -4,11 +4,11 @@
             "subsystem": "bdev",
             "config": [
                 {
-                    "method": "bdev_aio_create",
+                    "method": "bdev_nvme_attach_controller",
                     "params": {
-                        "filename": "/tmp/spdk_disk.img",
-                        "name": "AioDisk0",
-                        "block_size": 512
+                        "name": "Nvme0",
+                        "trtype": "PCIe",
+                        "traddr": "0000:00:00.0"
                     }
                 }
             ]
@@ -22,7 +22,7 @@
                         "wal": {
                             "type": "spdk",
                             "device": {
-                                "spdk_bdev": "AioDisk0",
+                                "spdk_bdev": "Nvme0n1",
                                 "wal_segment_size": 67108864,
                                 "batch_size": 32
                             }

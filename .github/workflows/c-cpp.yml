@@ -22,6 +22,7 @@ jobs:
       run: |
         mkdir -p build
         cd build
+        export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
         cmake .. -DCMAKE_BUILD_TYPE=Debug
         make -j$(nproc)
 
@@ -29,4 +30,5 @@ jobs:
       run: |
         cd build
         cp ../src/config/runtime_config.json .
+        export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
         ctest --output-on-failure
