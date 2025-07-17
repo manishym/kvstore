@@ -1,0 +1,36 @@
+{
+    "subsystems": [
+        {
+            "subsystem": "bdev",
+            "config": [
+                {
+                    "method": "bdev_nvme_attach_controller",
+                    "params": {
+                        "name": "Nvme0",
+                        "trtype": "PCIe",
+                        "traddr": "0000:00:00.0"
+                    }
+                }
+            ]
+        },
+        {
+            "subsystem": "kvstore",
+            "config": [
+                {
+                    "method": "kvstore_config",
+                    "params": {
+                        "wal": {
+                            "type": "spdk",
+                            "device": {
+                                "spdk_bdev": "Nvme0n1",
+                                "wal_segment_size": 67108864,
+                                "batch_size": 32
+                            }
+                        },
+                        "address": "0.0.0.0:50051"
+                    }
+                }
+            ]
+        }
+    ]
+}
