@@ -11,5 +11,9 @@
     },
     "wal": {
         "type": "none"
+    },
+    "lsm": {
+        "memtable_size": 1000,
+        "directory": "data"
     }
 }

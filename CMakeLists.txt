@@ -78,6 +78,7 @@ add_executable(server
     src/storage/stdmap_memtable.cpp
     src/storage/boostmap_memtable.cpp
     src/storage/skiplist_memtable.cpp
+    src/storage/block_lsm_tree.cpp
     src/wal/wal_serializer.cpp
     src/utils/file_buffer_writer.cpp
     ${PROTO_SRCS}
@@ -114,6 +115,7 @@ add_executable(kvstore_tests
     tests/unit/memtable_test.cpp
     tests/unit/map_test.cpp
     tests/unit/block_device_wal_test.cpp
+    tests/unit/block_lsm_tree_test.cpp
 
     tests/unit/wal_factory_test.cpp
     tests/unit/wal_serializer_test.cpp
@@ -124,6 +126,7 @@ add_executable(kvstore_tests
     src/storage/stdmap_memtable.cpp
     src/storage/boostmap_memtable.cpp
     src/storage/skiplist_memtable.cpp
+    src/storage/block_lsm_tree.cpp
     src/server/kv_server.cpp
     src/wal/wal_serializer.cpp
     src/utils/file_buffer_writer.cpp
